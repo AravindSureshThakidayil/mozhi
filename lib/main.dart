@@ -1,9 +1,21 @@
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'firebase_options.dart';
+import 'package:flutter/material.dart';
+import 'package:mozhi/authentication/screens/create_account.dart';
+import 'package:mozhi/authentication/screens/login.dart';
+import './authentication/screens/signout_screen.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import './video.dart';
 
-void main() {
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   runApp(const MyApp());
 }
 
@@ -32,30 +44,67 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  Widget sidebarElement(String title, IconData icon, Color background) {
-    return Container(
-        padding: const EdgeInsets.all(10),
-        margin: const EdgeInsets.only(bottom: 10),
-        decoration: BoxDecoration(
-            color: background,
-            borderRadius: const BorderRadius.all(Radius.circular(10))),
-        child: Row(mainAxisAlignment: MainAxisAlignment.start, children: [
-          Icon(
-            icon,
-            color: Colors.white,
-            size: 40,
-          ),
-          Container(
-              margin: const EdgeInsets.fromLTRB(30, 0, 0, 0),
-              child: Text(
-                title,
-                style: const TextStyle(fontSize: 20, color: Colors.white),
-              ))
-        ]));
+  late bool _isSignedIn;
+  @override
+  void initState() {
+    super.initState();
+    _isSignedIn = false; // Initialize with false initially
+    isSignedIn();
   }
 
+  Future<void> isSignedIn() async {
+    FirebaseAuth.instance.authStateChanges().listen((User? user) {
+      if (user != null) {
+        print(user.uid);
+        _isSignedIn = true;
+        return;
+      }
+      print("here");
+      _isSignedIn = false;
+    });
+  }
+
+  Widget sidebarElement(
+      String title, IconData icon, Color background, [Function? method]) {
+    return GestureDetector(
+        onTap: () {
+          if(method!=null)
+          {
+            method();
+          }
+        },
+        child: Container(
+            padding: const EdgeInsets.all(10),
+            margin: const EdgeInsets.only(bottom: 10),
+            decoration: BoxDecoration(
+                color: background,
+                borderRadius: const BorderRadius.all(Radius.circular(10))),
+            child: Row(mainAxisAlignment: MainAxisAlignment.start, children: [
+              Icon(
+                icon,
+                color: Colors.white,
+                size: 40,
+              ),
+              Container(
+                  margin: const EdgeInsets.fromLTRB(30, 0, 0, 0),
+                  child: Text(
+                    title,
+                    style: const TextStyle(fontSize: 20, color: Colors.white),
+                  ))
+            ])));
+  }
+
+  void _sendToLogin () 
+  {
+    Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context)=>LoginScreen()));
+  }
+  void _sendToLogout()
+  {
+    Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context)=>SignoutScreen()));
+  }
   @override
   Widget build(BuildContext context) {
+    isSignedIn();
     double width = MediaQuery.of(context).size.width;
     const Color background1 = Color.fromRGBO(0x3B, 0x3B, 0x3B, 0.9);
     return Scaffold(
@@ -100,12 +149,13 @@ class _MyHomePageState extends State<MyHomePage> {
             ]),
             Align(
                 alignment: Alignment.bottomLeft,
-                child: Column(
-                  children: [
-                    sidebarElement("Settings", Icons.settings, Colors.black),
-                    sidebarElement("Log out", Icons.logout, Colors.black),
-                  ],
-                ))
+                child: Column(children: [
+                  sidebarElement("Settings", Icons.settings, Colors.black),
+                  _isSignedIn
+                      ?sidebarElement("Logout", Icons.logout, Colors.black,_sendToLogout)
+                      :sidebarElement("Login", Icons.login, Colors.black,_sendToLogin)
+
+                ]))
           ])),
       Container(
           width: 0.8 * width,
