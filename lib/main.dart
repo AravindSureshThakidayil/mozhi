@@ -8,8 +8,7 @@ import './authentication/screens/signout_screen.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
-import './video.dart';
-
+import 'components/video.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -44,70 +43,74 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  late bool _isSignedIn;
+  bool _isSignedIn = true;
+
   @override
   void initState() {
-    super.initState();
-    _isSignedIn = false; // Initialize with false initially
     isSignedIn();
+    super.initState(); // Initialize with false initially
   }
 
   Future<void> isSignedIn() async {
     FirebaseAuth.instance.authStateChanges().listen((User? user) {
+      // print(user!.uid);
       if (user != null) {
         print(user.uid);
-        _isSignedIn = true;
-        return;
+        print("lol");
+        this._isSignedIn = true;
+      } else {
+        print("here");
+        this._isSignedIn = false;
       }
-      print("here");
-      _isSignedIn = false;
     });
   }
 
-  Widget sidebarElement(
-      String title, IconData icon, Color background, [Function? method]) {
+  Widget sidebarElement(String title, IconData icon, bool isActive,
+      [Function? method]) {
     return GestureDetector(
         onTap: () {
-          if(method!=null)
-          {
+          if (method != null) {
             method();
           }
         },
         child: Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: isActive ? Color(0xFF3B3B3B) : Colors.transparent,
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: Colors.white),
-          const SizedBox(width: 12),
-          Text(
-            title,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-            ),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: isActive ? const Color(0xFF3B3B3B) : Colors.transparent,
+            borderRadius: BorderRadius.circular(10),
           ),
-        ],
-      ),
-    ));
+          child: Row(
+            children: [
+              Icon(icon, color: Colors.white),
+              const SizedBox(width: 12),
+              Text(
+                title,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                ),
+              ),
+            ],
+          ),
+        ));
   }
 
-  void _sendToLogin () 
-  {
-    Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context)=>LoginScreen()));
+  void _sendToLogin() {
+    Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => const LoginScreen()));
   }
-  void _sendToLogout()
-  {
-    Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context)=>SignoutScreen()));
+
+  void _sendToLogout() {
+    Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => const SignoutScreen()));
   }
+
   @override
   Widget build(BuildContext context) {
-    isSignedIn();
+    // isSignedIn();
     double width = MediaQuery.of(context).size.width;
     const Color background1 = Color.fromRGBO(0x3B, 0x3B, 0x3B, 0.9);
+
     return Scaffold(
         // appBar: AppBar(
         //   title: Text('Mozhi'),
@@ -150,17 +153,16 @@ class _MyHomePageState extends State<MyHomePage> {
             const SizedBox(height: 10),
             sidebarElement("Profile", Icons.person_outline, false),
             const Spacer(),
-            sidebarElement("Settings", Icons.settings, false),
-            const SizedBox(height: 10),
-            sidebarElement("Log out", Icons.logout, false),
+            // sidebarElement("Settings", Icons.settings, false),
             Align(
                 alignment: Alignment.bottomLeft,
                 child: Column(children: [
-                  sidebarElement("Settings", Icons.settings, Colors.black),
+                  sidebarElement("Settings", Icons.settings, false),
                   _isSignedIn
-                      ?sidebarElement("Logout", Icons.logout, Colors.black,_sendToLogout)
-                      :sidebarElement("Login", Icons.login, Colors.black,_sendToLogin)
-
+                      ? sidebarElement(
+                          "Logout", Icons.logout, false, _sendToLogout)
+                      : sidebarElement(
+                          "Login", Icons.login, false, _sendToLogin)
                 ]))
           ])),
       Container(
@@ -187,11 +189,11 @@ class _MyHomePageState extends State<MyHomePage> {
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(color: Colors.grey.shade300),
                           ),
-                          child: Row(
+                          child: const Row(
                             children: [
                               Icon(Icons.local_fire_department,
                                   color: Colors.orange),
-                              const SizedBox(width: 5),
+                              SizedBox(width: 5),
                               Text('365'),
                             ],
                           ),
@@ -205,14 +207,14 @@ class _MyHomePageState extends State<MyHomePage> {
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(color: Colors.grey.shade300),
                           ),
-                          child: Row(
+                          child: const Row(
                             children: [
                               CircleAvatar(
                                 radius: 15,
-                                backgroundImage: AssetImage(
-                                    '../assets/stephen.jpg'), 
+                                backgroundImage:
+                                    AssetImage('../assets/stephen.jpg'),
                               ),
-                              const SizedBox(width: 8),
+                              SizedBox(width: 8),
                               Text('Stephen'),
                             ],
                           ),
@@ -221,9 +223,9 @@ class _MyHomePageState extends State<MyHomePage> {
                     ),
 
                     const SizedBox(height: 10),
-                    Divider(
+                    const Divider(
                       // Add this
-                      color: const Color.fromARGB(255, 163, 163, 163),
+                      color: Color.fromARGB(255, 163, 163, 163),
                       thickness: 1,
                     ),
                     const SizedBox(height: 10),
@@ -233,17 +235,17 @@ class _MyHomePageState extends State<MyHomePage> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Progress: 18%'),
+                        const Text('Progress: 18%'),
                         const SizedBox(height: 8),
-                        Container(
-                          width: width - 480, 
+                        SizedBox(
+                          width: width - 480,
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(10),
                             child: LinearProgressIndicator(
                               value: 0.18,
                               backgroundColor: Colors.grey.shade200,
-                              valueColor:
-                                  AlwaysStoppedAnimation<Color>(Colors.green),
+                              valueColor: const AlwaysStoppedAnimation<Color>(
+                                  Colors.green),
                               minHeight: 10,
                             ),
                           ),
@@ -306,7 +308,7 @@ class _MyHomePageState extends State<MyHomePage> {
                             width: 200,
                             padding: const EdgeInsets.all(20),
                             decoration: BoxDecoration(
-                              color: Color(0xFFF5DFD2),
+                              color: const Color(0xFFF5DFD2),
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Column(
@@ -345,10 +347,10 @@ Widget _buildChapterCard({
       boxShadow: [
         BoxShadow(
           color: isActive
-              ? Color.fromARGB(51, 0, 0, 0)
+              ? const Color.fromARGB(51, 0, 0, 0)
               : Colors.white, // 20% opacity (51 out of 255)
           blurRadius: 8,
-          offset: Offset(2, 4), // Position of the shadow (x, y)
+          offset: const Offset(2, 4), // Position of the shadow (x, y)
         ),
       ],
       color: Colors.white,
@@ -357,29 +359,30 @@ Widget _buildChapterCard({
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('Chapter $chapterNumber',
-            style: TextStyle(
-                fontSize: 16, color: const Color.fromARGB(255, 0, 0, 0))),
+            style: const TextStyle(
+                fontSize: 16, color: Color.fromARGB(255, 0, 0, 0))),
         const SizedBox(height: 8),
         Text(title,
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
         const SizedBox(height: 8),
-        Text(description, style: TextStyle(color: Colors.grey)),
+        Text(description, style: const TextStyle(color: Colors.grey)),
         const SizedBox(height: 16),
         Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
             if (isCompleted)
-              Row(
+              const Row(
                 children: [
                   Text('Completed', style: TextStyle(color: Colors.green)),
-                  const SizedBox(width: 8),
+                  SizedBox(width: 8),
                   Icon(Icons.check_circle, color: Colors.green),
                 ],
               )
             else if (isActive)
-              Text('Start Now →', style: TextStyle(fontWeight: FontWeight.bold))
+              const Text('Start Now →',
+                  style: TextStyle(fontWeight: FontWeight.bold))
             else if (isLocked)
-              Text('Start Now →', style: TextStyle(color: Colors.grey)),
+              const Text('Start Now →', style: TextStyle(color: Colors.grey)),
           ],
         ),
       ],

@@ -1,8 +1,9 @@
 import 'create_account.dart';
 import 'package:flutter/material.dart';
 import "auth_service.dart";
+
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({Key? key}) : super(key: key);
+  const LoginScreen({super.key});
 
   @override
   _LoginScreenState createState() => _LoginScreenState();
@@ -11,8 +12,8 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  String _errorMessage='';
-    @override
+  final String _errorMessage = '';
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
@@ -48,16 +49,15 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             ElevatedButton(
               onPressed: () {
-                try{
+                try {
                   print(_emailController.text);
-                signInWithEmailAndPassword(_emailController.text, _passwordController.text,context);
-                }
-                catch(e)
-                {
-                   Text(
-                e.toString(),
-                style: const TextStyle(color: Colors.red),
-              );
+                  signInWithEmailAndPassword(
+                      _emailController.text, _passwordController.text, context);
+                } catch (e) {
+                  Text(
+                    e.toString(),
+                    style: const TextStyle(color: Colors.red),
+                  );
                 }
               },
               child: const Text('Login'),
