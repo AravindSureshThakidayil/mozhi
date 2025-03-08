@@ -378,9 +378,9 @@ void _navigateToChapter(int chapterNumber, bool isLocked) {
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.spaceAround,
                               children: [
-                                Image.asset('../assets/hand1.png', height: 150),
-                                Image.asset('../assets/hand2.png', height: 150),
-                                Image.asset('../assets/hand3.png', height: 150),
+                                Image.asset('../assets/hand1.png', height: 100),
+                                Image.asset('../assets/hand2.png', height: 100),
+                                Image.asset('../assets/hand3.png', height: 100),
                               ],
                             ),
                           ),
