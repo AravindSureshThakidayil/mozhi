@@ -53,6 +53,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Future<void> isSignedIn() async {
     FirebaseAuth.instance.authStateChanges().listen((User? user) {
+      if (!mounted) return;
       setState(() {
         // print(user!.uid);
         if (user != null) {
