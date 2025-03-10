@@ -1,9 +1,12 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mozhi/evaluation/alphabet_test.dart';
 import 'firebase_options.dart';
 import 'package:flutter/material.dart';
 import 'package:mozhi/authentication/screens/create_account.dart';
 import 'package:mozhi/authentication/screens/login.dart';
+import 'package:mozhi/components/camera.dart';
 import './authentication/screens/signout_screen.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
@@ -15,7 +18,7 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  runApp(const MyApp());
+  runApp(ProviderScope(child: const MyApp()));
 }
 
 class MyApp extends StatelessWidget {
@@ -53,12 +56,13 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Future<void> isSignedIn() async {
     FirebaseAuth.instance.authStateChanges().listen((User? user) {
+      if (!mounted) return;
       setState(() {
         // print(user!.uid);
         if (user != null) {
-          this._isSignedIn = true;
+          _isSignedIn = true;
         } else {
-          this._isSignedIn = false;
+          _isSignedIn = false;
         }
       });
     });
@@ -151,6 +155,9 @@ class _MyHomePageState extends State<MyHomePage> {
             sidebarElement("Rankings", Icons.bar_chart, false),
             const SizedBox(height: 10),
             sidebarElement("Profile", Icons.person_outline, false),
+            const SizedBox(height: 10),
+            _testCamera(context: context),
+
             const Spacer(),
             // sidebarElement("Settings", Icons.settings, false),
             Align(
@@ -385,6 +392,23 @@ Widget _buildChapterCard({
           ],
         ),
       ],
+    ),
+  );
+}
+
+Widget _testCamera({context}) {
+  return Container(
+    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+    decoration: BoxDecoration(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(10),
+    ),
+    child: ElevatedButton(
+      onPressed: () {
+        Navigator.push(context,
+            MaterialPageRoute(builder: (context) => AlphabetTestScreen()));
+      },
+      child: const Text('Evaluation'),
     ),
   );
 }
