@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:mozhi/main.dart';
-import 'auth_service.dart';
+
 
 class SignoutScreen extends StatefulWidget {
   const SignoutScreen({super.key});
