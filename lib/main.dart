@@ -12,6 +12,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import 'components/video.dart';
+import './screens/chapter_one.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -27,12 +28,12 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'MOZHI',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: const MyHomePage(title: 'MOZHI Demo Home Page'),
     );
   }
 }
@@ -107,6 +108,66 @@ class _MyHomePageState extends State<MyHomePage> {
     Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (context) => const SignoutScreen()));
   }
+
+ // In main.dart, modify the _navigateToChapter method to use a PageRouteBuilder with transition:
+
+void _navigateToChapter(int chapterNumber, bool isLocked) {
+  if (isLocked) {
+    // Show a dialog or snackbar indicating the chapter is locked
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('This chapter is locked. Complete previous chapters first.'),
+        duration: Duration(seconds: 2),
+      ),
+    );
+    return;
+  }
+
+  Widget chapterScreen = const ChapterOneScreen();
+  switch (chapterNumber) {
+    case 1:
+      chapterScreen = const ChapterOneScreen();
+      break;
+    case 2:
+      //chapterScreen = const ChapterTwoScreen();
+      break;
+    case 3:
+      //chapterScreen = const ChapterThreeScreen();
+      break;
+    case 4:
+      //chapterScreen = const ChapterFourScreen();
+      break;
+    default:
+      chapterScreen = const ChapterOneScreen();
+  }
+
+  // Use PageRouteBuilder for custom fade transition
+  Navigator.of(context).push(
+    PageRouteBuilder(
+      pageBuilder: (context, animation, secondaryAnimation) => chapterScreen,
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        // Create a fade transition
+        return FadeTransition(
+          opacity: animation,
+          // Add a slight scale effect for smoother appearance
+          child: SlideTransition(
+            position: Tween<Offset>(
+              begin: const Offset(0.0, 0.05),
+              end: Offset.zero,
+            ).animate(CurvedAnimation(
+              parent: animation,
+              curve: Curves.easeOutQuint,
+            )),
+            child: child,
+          ),
+        );
+      },
+      transitionDuration: const Duration(milliseconds: 400),
+    ),
+  );
+}
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -276,7 +337,8 @@ class _MyHomePageState extends State<MyHomePage> {
                                     title: "COUNTING WITH HANDS",
                                     description:
                                         "Learn the universal language of numbers through gestures.",
-                                    isCompleted: true,
+                                    isActive:true,
+                                    onTap: () => _navigateToChapter(1, false),
                                   ),
                                   const SizedBox(height: 20),
                                   _buildChapterCard(
@@ -285,6 +347,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                     description:
                                         "Master the art of alphabets in sign language.",
                                     isActive: true,
+                                    onTap: () => _navigateToChapter(1, false),
                                   ),
                                   const SizedBox(height: 20),
                                   _buildChapterCard(
@@ -293,6 +356,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                     description:
                                         "Express yourself with common phrases and gestures.",
                                     isLocked: true,
+                                    onTap: () => _navigateToChapter(1, false),
                                   ),
                                   const SizedBox(height: 20),
                                   _buildChapterCard(
@@ -301,6 +365,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                     description:
                                         "Express yourself with common phrases and gestures.",
                                     isLocked: true,
+                                    onTap: () => _navigateToChapter(1, false),
                                   ),
                                   // Add more chapters as needed
                                 ],
@@ -320,9 +385,9 @@ class _MyHomePageState extends State<MyHomePage> {
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.spaceAround,
                               children: [
-                                Image.asset('../assets/hand1.png', height: 150),
-                                Image.asset('../assets/hand2.png', height: 150),
-                                Image.asset('../assets/hand3.png', height: 150),
+                                Image.asset('../assets/hand1.png', height: 100),
+                                Image.asset('../assets/hand2.png', height: 100),
+                                Image.asset('../assets/hand3.png', height: 100),
                               ],
                             ),
                           ),
@@ -341,8 +406,11 @@ Widget _buildChapterCard({
   bool isCompleted = false,
   bool isActive = false,
   bool isLocked = false,
+  required Function onTap,
 }) {
-  return Container(
+  return GestureDetector(
+    onTap: () => onTap(),
+   child: Container(
     padding: const EdgeInsets.all(20),
     decoration: BoxDecoration(
       border: Border.all(
@@ -392,6 +460,7 @@ Widget _buildChapterCard({
           ],
         ),
       ],
+    ),
     ),
   );
 }
