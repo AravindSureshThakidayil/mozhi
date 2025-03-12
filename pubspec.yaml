@@ -41,8 +41,14 @@ dependencies:
   firebase_auth: ^5.4.0
   video_player: ^2.9.2
   firebase: ^9.0.3
-  
-  camera: ^0.10.5+5
+  camera: ^0.11.1
+  camera_web: ^0.3.5
+  path_provider: ^2.1.5
+  file_saver: ^0.2.14
+  flutter_riverpod: ^2.6.1
+  riverpod_annotation: ^2.6.1
+  http: ^0.13.6
+  quiver: ^3.2.2
 
 dev_dependencies:
   flutter_test:
@@ -54,6 +60,10 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^3.0.0
+  riverpod_generator: ^2.6.5
+  build_runner: ^2.4.14
+  custom_lint: ^0.7.5
+  riverpod_lint: ^2.6.5
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
