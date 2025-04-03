@@ -523,6 +523,7 @@ class _CameraAppState extends State<CameraApp> {
     }
 
     // Pass the letter from the widget to CameraExampleHome
-    return CameraExampleHome(letter: widget.letter, onEvaluationResult: widget.onEvaluationResult);
+    return CameraExampleHome(
+        letter: widget.letter, onEvaluationResult: widget.onEvaluationResult);
   }
 }

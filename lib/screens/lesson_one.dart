@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import 'package:camera/camera.dart';
@@ -13,7 +15,8 @@ class LessonScreen extends StatefulWidget {
   State<LessonScreen> createState() => _LessonScreenState();
 }
 
-class _LessonScreenState extends State<LessonScreen> with TickerProviderStateMixin {
+class _LessonScreenState extends State<LessonScreen>
+    with TickerProviderStateMixin {
   bool isLearnActive = true;
   late VideoPlayerController _videoController;
   CameraController? _cameraController;
@@ -21,7 +24,7 @@ class _LessonScreenState extends State<LessonScreen> with TickerProviderStateMix
   bool _isCameraInitialized = false;
   bool _isVideoInitialized = false;
   String? _videoError;
-  
+
   // Alphabet test related state
   String _currentLetter = 'A'; // Initial letter
   String _evaluationResult = ''; // Evaluation result
@@ -39,25 +42,26 @@ class _LessonScreenState extends State<LessonScreen> with TickerProviderStateMix
   Future<void> _initializeVideo() async {
     // Use asset-based approach instead of file path
     try {
-      _videoController = VideoPlayerController.asset('../../assets/lesson1.mp4');
-      
+      _videoController =
+          VideoPlayerController.asset('../../assets/lesson1.mp4');
+
       // Add listener to update UI when video status changes
       _videoController.addListener(() {
         if (mounted) setState(() {});
       });
-      
+
       await _videoController.initialize();
-      
+
       // Configure video to loop
       await _videoController.setLooping(true);
-      
+
       // Set volume
       await _videoController.setVolume(1.0);
-      
+
       if (isLearnActive) {
         await _videoController.play();
       }
-      
+
       if (mounted) {
         setState(() {
           _isVideoInitialized = true;
@@ -105,7 +109,7 @@ class _LessonScreenState extends State<LessonScreen> with TickerProviderStateMix
     setState(() {
       if (isLearnActive != learnMode) {
         isLearnActive = learnMode;
-        
+
         if (isLearnActive) {
           // If switching to learn mode, play video and pause camera
           if (_isVideoInitialized) {
@@ -138,6 +142,22 @@ class _LessonScreenState extends State<LessonScreen> with TickerProviderStateMix
   }
 
   void _updateEvaluationResult(String result) {
+    if (_currentLetter == result) {
+      // mark it completed for the user
+      FirebaseFirestore.instance.collection(
+          // to be replaced with active user id
+          "user_collections/YkYXLIGLTGPA0eIuSzwroYZyDdO2/lessons_done").add({
+        "lessonid": "chapters/1/lessons/1",
+        "completed": DateTime.now()
+      });
+
+      // add XP to user in Firebase
+      FirebaseFirestore.instance
+          .collection("user_collections")
+          .doc("YkYXLIGLTGPA0eIuSzwroYZyDdO2")
+          .update({"xp": FieldValue.increment(1)});
+    }
+
     setState(() {
       _evaluationResult = result;
       _isTakingPicture = false;
@@ -146,7 +166,7 @@ class _LessonScreenState extends State<LessonScreen> with TickerProviderStateMix
 
   void _startCountdown() {
     if (_isTakingPicture) return;
-    
+
     setState(() {
       _timerSeconds = 5;
       _isTakingPicture = true;
@@ -168,8 +188,7 @@ class _LessonScreenState extends State<LessonScreen> with TickerProviderStateMix
   Future<void> _takePicture() async {
     if (_cameraController == null || !_cameraController!.value.isInitialized) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Camera not initialized'))
-      );
+          const SnackBar(content: Text('Camera not initialized')));
       setState(() {
         _isTakingPicture = false;
       });
@@ -196,7 +215,7 @@ class _LessonScreenState extends State<LessonScreen> with TickerProviderStateMix
     try {
       final bytes = await file.readAsBytes();
       final base64Image = base64Encode(bytes);
-      
+
       final response = await http.post(
         Uri.parse('http://localhost:8001/predict'),
         headers: {'Content-Type': 'application/json'},
@@ -205,26 +224,24 @@ class _LessonScreenState extends State<LessonScreen> with TickerProviderStateMix
 
       if (response.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Image sent successfully'))
-        );
-        
-        var decodedResponse = jsonDecode(utf8.decode(response.bodyBytes)) as Map;
+            const SnackBar(content: Text('Image sent successfully')));
+
+        var decodedResponse =
+            jsonDecode(utf8.decode(response.bodyBytes)) as Map;
         _updateEvaluationResult(decodedResponse['predicted'].toString());
         print(decodedResponse);
         print("Current letter: $_currentLetter");
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to send image'))
-        );
+            const SnackBar(content: Text('Failed to send image')));
         setState(() {
           _isTakingPicture = false;
         });
       }
     } catch (e) {
       print('Error processing image: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e'))
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Error: $e')));
       setState(() {
         _isTakingPicture = false;
       });
@@ -234,11 +251,11 @@ class _LessonScreenState extends State<LessonScreen> with TickerProviderStateMix
   void _showCameraException(CameraException e) {
     print('Error: ${e.code}\n${e.description}');
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Error: ${e.code}\n${e.description}'))
-    );
+        SnackBar(content: Text('Error: ${e.code}\n${e.description}')));
   }
 
-  Widget sidebarElement(String title, IconData icon, bool isActive, [VoidCallback? method]) {
+  Widget sidebarElement(String title, IconData icon, bool isActive,
+      [VoidCallback? method]) {
     return GestureDetector(
       onTap: method,
       child: Container(
@@ -303,13 +320,13 @@ class _LessonScreenState extends State<LessonScreen> with TickerProviderStateMix
         ),
       );
     }
-    
+
     if (!_isVideoInitialized) {
       return const Center(
         child: CircularProgressIndicator(color: Colors.white),
       );
     }
-    
+
     return AspectRatio(
       aspectRatio: _videoController.value.aspectRatio,
       child: VideoPlayer(_videoController),
@@ -332,7 +349,7 @@ class _LessonScreenState extends State<LessonScreen> with TickerProviderStateMix
         ),
       );
     }
-    
+
     return Stack(
       alignment: Alignment.center,
       children: [
@@ -407,27 +424,27 @@ class _LessonScreenState extends State<LessonScreen> with TickerProviderStateMix
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
             decoration: BoxDecoration(
-              color: _evaluationResult == _currentLetter 
-                ? Colors.green.withOpacity(0.2) 
-                : Colors.red.withOpacity(0.2),
+              color: _evaluationResult == _currentLetter
+                  ? Colors.green.withOpacity(0.2)
+                  : Colors.red.withOpacity(0.2),
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
-                color: _evaluationResult == _currentLetter 
-                  ? Colors.green 
-                  : Colors.red,
+                color: _evaluationResult == _currentLetter
+                    ? Colors.green
+                    : Colors.red,
                 width: 1,
               ),
             ),
             child: Text(
-              _evaluationResult == _currentLetter 
-                ? "Correct! You signed $_evaluationResult" 
-                : "That looks like $_evaluationResult. Try again!",
+              _evaluationResult == _currentLetter
+                  ? "Correct! You signed $_evaluationResult"
+                  : "That looks like $_evaluationResult. Try again!",
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: _evaluationResult == _currentLetter 
-                  ? Colors.green.shade800 
-                  : Colors.red.shade800,
+                color: _evaluationResult == _currentLetter
+                    ? Colors.green.shade800
+                    : Colors.red.shade800,
               ),
             ),
           ),
@@ -439,7 +456,8 @@ class _LessonScreenState extends State<LessonScreen> with TickerProviderStateMix
             ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFF5DFD2),
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(30),
                 ),
@@ -451,14 +469,15 @@ class _LessonScreenState extends State<LessonScreen> with TickerProviderStateMix
                 style: const TextStyle(color: Colors.black87, fontSize: 16),
               ),
             ),
-            
+
             const SizedBox(width: 15),
-            
+
             // Button to change the letter
             ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.grey.shade300,
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(30),
                 ),
@@ -479,7 +498,7 @@ class _LessonScreenState extends State<LessonScreen> with TickerProviderStateMix
   @override
   Widget build(BuildContext context) {
     double width = MediaQuery.of(context).size.width;
-    
+
     return Scaffold(
       body: Row(
         children: [
@@ -552,7 +571,7 @@ class _LessonScreenState extends State<LessonScreen> with TickerProviderStateMix
                     children: [
                       Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 16, 
+                          horizontal: 16,
                           vertical: 8,
                         ),
                         decoration: BoxDecoration(
@@ -572,7 +591,7 @@ class _LessonScreenState extends State<LessonScreen> with TickerProviderStateMix
                       const SizedBox(width: 10),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 16, 
+                          horizontal: 16,
                           vertical: 8,
                         ),
                         decoration: BoxDecoration(
@@ -601,7 +620,7 @@ class _LessonScreenState extends State<LessonScreen> with TickerProviderStateMix
                     thickness: 1,
                   ),
                   const SizedBox(height: 10),
-                
+
                   // Lesson content
                   Expanded(
                     child: Row(
@@ -618,35 +637,37 @@ class _LessonScreenState extends State<LessonScreen> with TickerProviderStateMix
                                   mainAxisAlignment: MainAxisAlignment.start,
                                   children: [
                                     Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        const Text(
-                                          "Lesson 1",
-                                          style: TextStyle(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.normal,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      const Text(
-                                          "Basic Hand Signs",
-                                          style: TextStyle(
-                                            fontSize: 22,
-                                            fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ]),
-                                    const Spacer(), 
-                                      
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          const Text(
+                                            "Lesson 1",
+                                            style: TextStyle(
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.normal,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 8),
+                                          const Text(
+                                            "Basic Hand Signs",
+                                            style: TextStyle(
+                                              fontSize: 22,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ]),
+                                    const Spacer(),
                                     GestureDetector(
                                       onTap: () => _toggleMode(true),
                                       child: Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 40, vertical: 12),
                                         decoration: BoxDecoration(
-                                          color: isLearnActive 
-                                              ? const Color(0xFFF5DFD2) 
+                                          color: isLearnActive
+                                              ? const Color(0xFFF5DFD2)
                                               : Colors.grey.shade300,
-                                          borderRadius: BorderRadius.circular(20),
+                                          borderRadius:
+                                              BorderRadius.circular(20),
                                         ),
                                         child: const Text(
                                           "Learn",
@@ -661,12 +682,14 @@ class _LessonScreenState extends State<LessonScreen> with TickerProviderStateMix
                                     GestureDetector(
                                       onTap: () => _toggleMode(false),
                                       child: Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 40, vertical: 12),
                                         decoration: BoxDecoration(
-                                          color: !isLearnActive 
-                                              ? const Color(0xFFF5DFD2) 
+                                          color: !isLearnActive
+                                              ? const Color(0xFFF5DFD2)
                                               : Colors.grey.shade300,
-                                          borderRadius: BorderRadius.circular(20),
+                                          borderRadius:
+                                              BorderRadius.circular(20),
                                         ),
                                         child: const Text(
                                           "Take Test",
@@ -679,78 +702,88 @@ class _LessonScreenState extends State<LessonScreen> with TickerProviderStateMix
                                     ),
                                   ],
                                 ),
-                                
+
                                 const SizedBox(height: 20),
-                                
+
                                 // Video player in learn mode / Split view in test mode
                                 Expanded(
                                   child: isLearnActive
-                                    // LEARN MODE: Full video player
-                                    ? ClipRRect(
-                                        borderRadius: BorderRadius.circular(10),
-                                        child: Container(
-                                          width: double.maxFinite,
-                                          color: Colors.black,
-                                          child: _buildVideoPlayer(),
-                                        ),
-                                      )
-                                    // TEST MODE: Split view with instructions on left, camera on right
-                                    : Row(
-                                        children: [
-                                          // Left side: Letter instructions
-                                          Expanded(
-                                            flex: 4,
-                                            child: Container(
-                                              padding: const EdgeInsets.all(20),
-                                              decoration: BoxDecoration(
-                                                color: Colors.grey.shade100,
-                                                borderRadius: BorderRadius.circular(10),
-                                              ),
-                                              child: _buildAlphabetTestInstructions(),
-                                            ),
+                                      // LEARN MODE: Full video player
+                                      ? ClipRRect(
+                                          borderRadius:
+                                              BorderRadius.circular(10),
+                                          child: Container(
+                                            width: double.maxFinite,
+                                            color: Colors.black,
+                                            child: _buildVideoPlayer(),
                                           ),
-                                          // Spacing
-                                          const SizedBox(width: 15),
-                                          // Right side: Camera view
-                                          Expanded(
-                                            flex: 6,
-                                            child: ClipRRect(
-                                              borderRadius: BorderRadius.circular(10),
+                                        )
+                                      // TEST MODE: Split view with instructions on left, camera on right
+                                      : Row(
+                                          children: [
+                                            // Left side: Letter instructions
+                                            Expanded(
+                                              flex: 4,
                                               child: Container(
-                                                color: Colors.black,
-                                                child: _buildCameraPreview(),
+                                                padding:
+                                                    const EdgeInsets.all(20),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.grey.shade100,
+                                                  borderRadius:
+                                                      BorderRadius.circular(10),
+                                                ),
+                                                child:
+                                                    _buildAlphabetTestInstructions(),
                                               ),
                                             ),
-                                          ),
-                                        ],
-                                      ),
+                                            // Spacing
+                                            const SizedBox(width: 15),
+                                            // Right side: Camera view
+                                            Expanded(
+                                              flex: 6,
+                                              child: ClipRRect(
+                                                borderRadius:
+                                                    BorderRadius.circular(10),
+                                                child: Container(
+                                                  color: Colors.black,
+                                                  child: _buildCameraPreview(),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
                                 ),
-                                
+
                                 // Video controls (only in learn mode)
                                 if (isLearnActive && _isVideoInitialized)
                                   Padding(
                                     padding: const EdgeInsets.only(top: 15),
                                     child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
                                       children: [
                                         IconButton(
                                           icon: Icon(
-                                            _videoController.value.position.inSeconds <= 0 
+                                            _videoController.value.position
+                                                        .inSeconds <=
+                                                    0
                                                 ? Icons.replay_5
                                                 : Icons.replay_10,
                                             size: 30,
                                           ),
                                           onPressed: () {
-                                            final newPosition = _videoController.value.position - 
+                                            final newPosition = _videoController
+                                                    .value.position -
                                                 const Duration(seconds: 10);
-                                            _videoController.seekTo(newPosition);
+                                            _videoController
+                                                .seekTo(newPosition);
                                           },
                                         ),
                                         const SizedBox(width: 20),
                                         IconButton(
                                           iconSize: 50,
                                           icon: Icon(
-                                            _videoController.value.isPlaying 
+                                            _videoController.value.isPlaying
                                                 ? Icons.pause_circle_filled
                                                 : Icons.play_circle_filled,
                                           ),
@@ -769,9 +802,11 @@ class _LessonScreenState extends State<LessonScreen> with TickerProviderStateMix
                                             size: 30,
                                           ),
                                           onPressed: () {
-                                            final newPosition = _videoController.value.position + 
+                                            final newPosition = _videoController
+                                                    .value.position +
                                                 const Duration(seconds: 10);
-                                            _videoController.seekTo(newPosition);
+                                            _videoController
+                                                .seekTo(newPosition);
                                           },
                                         ),
                                       ],
@@ -781,7 +816,7 @@ class _LessonScreenState extends State<LessonScreen> with TickerProviderStateMix
                             ),
                           ),
                         ),
-                        
+
                         // Right sidebar with hand signs
                         const SizedBox(width: 20),
                         Container(

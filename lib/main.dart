@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -109,65 +110,85 @@ class _MyHomePageState extends State<MyHomePage> {
         MaterialPageRoute(builder: (context) => const SignoutScreen()));
   }
 
- // In main.dart, modify the _navigateToChapter method to use a PageRouteBuilder with transition:
+  Future<List<Widget>> readChapters() async {
+    List<Widget> chapters = [];
+    try {
+      QuerySnapshot<Map<String, dynamic>> querySnapshot =
+          await FirebaseFirestore.instance.collection("chapters").get();
 
-void _navigateToChapter(int chapterNumber, bool isLocked) {
-  if (isLocked) {
-    // Show a dialog or snackbar indicating the chapter is locked
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('This chapter is locked. Complete previous chapters first.'),
-        duration: Duration(seconds: 2),
+      Map<String, dynamic> chapterData;
+      for (QueryDocumentSnapshot<Map<String, dynamic>> doc
+          in querySnapshot.docs) {
+        chapterData = doc.data();
+        chapters.add(_buildChapterCard(
+            chapterNumber: doc.id,
+            title: chapterData['title'],
+            description: chapterData['description'],
+            onTap: () => _navigateToChapter(doc.id, false)));
+      }
+    } catch (e) {}
+
+    return chapters;
+  }
+
+  // In main.dart, modify the _navigateToChapter method to use a PageRouteBuilder with transition:
+
+  void _navigateToChapter(String chapterNumber, bool isLocked) {
+    if (isLocked) {
+      // Show a dialog or snackbar indicating the chapter is locked
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content:
+              Text('This chapter is locked. Complete previous chapters first.'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
+    Widget chapterScreen = const ChapterOneScreen();
+    switch (chapterNumber) {
+      case "1":
+        chapterScreen = const ChapterOneScreen();
+        break;
+      // case 2:
+      //   //chapterScreen = const ChapterTwoScreen();
+      //   break;
+      // case 3:
+      //   //chapterScreen = const ChapterThreeScreen();
+      //   break;
+      // case 4:
+      //   //chapterScreen = const ChapterFourScreen();
+      //   break;
+      default:
+        chapterScreen = const ChapterOneScreen();
+    }
+
+    // Use PageRouteBuilder for custom fade transition
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) => chapterScreen,
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          // Create a fade transition
+          return FadeTransition(
+            opacity: animation,
+            // Add a slight scale effect for smoother appearance
+            child: SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(0.0, 0.05),
+                end: Offset.zero,
+              ).animate(CurvedAnimation(
+                parent: animation,
+                curve: Curves.easeOutQuint,
+              )),
+              child: child,
+            ),
+          );
+        },
+        transitionDuration: const Duration(milliseconds: 400),
       ),
     );
-    return;
   }
-
-  Widget chapterScreen = const ChapterOneScreen();
-  switch (chapterNumber) {
-    case 1:
-      chapterScreen = const ChapterOneScreen();
-      break;
-    case 2:
-      //chapterScreen = const ChapterTwoScreen();
-      break;
-    case 3:
-      //chapterScreen = const ChapterThreeScreen();
-      break;
-    case 4:
-      //chapterScreen = const ChapterFourScreen();
-      break;
-    default:
-      chapterScreen = const ChapterOneScreen();
-  }
-
-  // Use PageRouteBuilder for custom fade transition
-  Navigator.of(context).push(
-    PageRouteBuilder(
-      pageBuilder: (context, animation, secondaryAnimation) => chapterScreen,
-      transitionsBuilder: (context, animation, secondaryAnimation, child) {
-        // Create a fade transition
-        return FadeTransition(
-          opacity: animation,
-          // Add a slight scale effect for smoother appearance
-          child: SlideTransition(
-            position: Tween<Offset>(
-              begin: const Offset(0.0, 0.05),
-              end: Offset.zero,
-            ).animate(CurvedAnimation(
-              parent: animation,
-              curve: Curves.easeOutQuint,
-            )),
-            child: child,
-          ),
-        );
-      },
-      transitionDuration: const Duration(milliseconds: 400),
-    ),
-  );
-}
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -329,48 +350,71 @@ void _navigateToChapter(int chapterNumber, bool isLocked) {
                           Expanded(
                             flex: 2,
                             child: SingleChildScrollView(
-                              // Add this wrapper
-                              child: Column(
-                                children: [
-                                  _buildChapterCard(
-                                    chapterNumber: "1",
-                                    title: "COUNTING WITH HANDS",
-                                    description:
-                                        "Learn the universal language of numbers through gestures.",
-                                    isActive:true,
-                                    onTap: () => _navigateToChapter(1, false),
-                                  ),
-                                  const SizedBox(height: 20),
-                                  _buildChapterCard(
-                                    chapterNumber: "2",
-                                    title: "FINGER SPELL IT",
-                                    description:
-                                        "Master the art of alphabets in sign language.",
-                                    isActive: true,
-                                    onTap: () => _navigateToChapter(1, false),
-                                  ),
-                                  const SizedBox(height: 20),
-                                  _buildChapterCard(
-                                    chapterNumber: "3",
-                                    title: "EVERYDAY EXPRESSIONS",
-                                    description:
-                                        "Express yourself with common phrases and gestures.",
-                                    isLocked: true,
-                                    onTap: () => _navigateToChapter(1, false),
-                                  ),
-                                  const SizedBox(height: 20),
-                                  _buildChapterCard(
-                                    chapterNumber: "4",
-                                    title: "EVERYDAY EXPRESSIONS",
-                                    description:
-                                        "Express yourself with common phrases and gestures.",
-                                    isLocked: true,
-                                    onTap: () => _navigateToChapter(1, false),
-                                  ),
-                                  // Add more chapters as needed
-                                ],
-                              ),
-                            ),
+                                child: FutureBuilder(
+                                    future: readChapters(),
+                                    builder: (context, snapshot) {
+                                      if (snapshot.connectionState ==
+                                          ConnectionState.waiting) {
+                                        return const Center(
+                                            child: CircularProgressIndicator());
+                                      } else if (snapshot.hasError) {
+                                        return Center(
+                                            child: Text(
+                                                'Error: ${snapshot.error}'));
+                                      } else if (!snapshot.hasData ||
+                                          snapshot.data!.isEmpty) {
+                                        return const Center(
+                                            child: Text('No widgets found.'));
+                                      } else {
+                                        // The list of widgets has been successfully returned
+                                        List<Widget> lessonWidgets =
+                                            snapshot.data!;
+
+                                        return Column(children: lessonWidgets);
+                                      }
+                                    })
+                                // Add this wrapper
+                                // child: Column(
+                                //   children: [
+                                //     _buildChapterCard(
+                                //       chapterNumber: "1",
+                                //       title: "COUNTING WITH HANDS",
+                                //       description:
+                                //           "Learn the universal language of numbers through gestures.",
+                                //       isActive: true,
+                                //       onTap: () => _navigateToChapter(1, false),
+                                //     ),
+                                //     const SizedBox(height: 20),
+                                //     _buildChapterCard(
+                                //       chapterNumber: "2",
+                                //       title: "FINGER SPELL IT",
+                                //       description:
+                                //           "Master the art of alphabets in sign language.",
+                                //       isActive: true,
+                                //       onTap: () => _navigateToChapter(1, false),
+                                //     ),
+                                //     const SizedBox(height: 20),
+                                //     _buildChapterCard(
+                                //       chapterNumber: "3",
+                                //       title: "EVERYDAY EXPRESSIONS",
+                                //       description:
+                                //           "Express yourself with common phrases and gestures.",
+                                //       isLocked: true,
+                                //       onTap: () => _navigateToChapter(1, false),
+                                //     ),
+                                //     const SizedBox(height: 20),
+                                //     _buildChapterCard(
+                                //       chapterNumber: "4",
+                                //       title: "EVERYDAY EXPRESSIONS",
+                                //       description:
+                                //           "Express yourself with common phrases and gestures.",
+                                //       isLocked: true,
+                                //       onTap: () => _navigateToChapter(1, false),
+                                //     ),
+                                //     // Add more chapters as needed
+                                //   ],
+                                // ),
+                                ),
                           ),
 
                           // Right Side Images
@@ -410,57 +454,58 @@ Widget _buildChapterCard({
 }) {
   return GestureDetector(
     onTap: () => onTap(),
-   child: Container(
-    padding: const EdgeInsets.all(20),
-    decoration: BoxDecoration(
-      border: Border.all(
-          color: isCompleted
-              ? const Color.fromARGB(255, 133, 193, 135)
-              : Colors.grey.shade300),
-      borderRadius: BorderRadius.circular(10),
-      boxShadow: [
-        BoxShadow(
-          color: isActive
-              ? const Color.fromARGB(51, 0, 0, 0)
-              : Colors.white, // 20% opacity (51 out of 255)
-          blurRadius: 8,
-          offset: const Offset(2, 4), // Position of the shadow (x, y)
-        ),
-      ],
-      color: Colors.white,
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Chapter $chapterNumber',
-            style: const TextStyle(
-                fontSize: 16, color: Color.fromARGB(255, 0, 0, 0))),
-        const SizedBox(height: 8),
-        Text(title,
-            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 8),
-        Text(description, style: const TextStyle(color: Colors.grey)),
-        const SizedBox(height: 16),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            if (isCompleted)
-              const Row(
-                children: [
-                  Text('Completed', style: TextStyle(color: Colors.green)),
-                  SizedBox(width: 8),
-                  Icon(Icons.check_circle, color: Colors.green),
-                ],
-              )
-            else if (isActive)
-              const Text('Start Now →',
-                  style: TextStyle(fontWeight: FontWeight.bold))
-            else if (isLocked)
-              const Text('Start Now →', style: TextStyle(color: Colors.grey)),
-          ],
-        ),
-      ],
-    ),
+    child: Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        border: Border.all(
+            color: isCompleted
+                ? const Color.fromARGB(255, 133, 193, 135)
+                : Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(10),
+        boxShadow: [
+          BoxShadow(
+            color: isActive
+                ? const Color.fromARGB(51, 0, 0, 0)
+                : Colors.white, // 20% opacity (51 out of 255)
+            blurRadius: 8,
+            offset: const Offset(2, 4), // Position of the shadow (x, y)
+          ),
+        ],
+        color: Colors.white,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Chapter $chapterNumber',
+              style: const TextStyle(
+                  fontSize: 16, color: Color.fromARGB(255, 0, 0, 0))),
+          const SizedBox(height: 8),
+          Text(title,
+              style:
+                  const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          Text(description, style: const TextStyle(color: Colors.grey)),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              if (isCompleted)
+                const Row(
+                  children: [
+                    Text('Completed', style: TextStyle(color: Colors.green)),
+                    SizedBox(width: 8),
+                    Icon(Icons.check_circle, color: Colors.green),
+                  ],
+                )
+              else if (isActive)
+                const Text('Start Now →',
+                    style: TextStyle(fontWeight: FontWeight.bold))
+              else if (isLocked)
+                const Text('Start Now →', style: TextStyle(color: Colors.grey)),
+            ],
+          ),
+        ],
+      ),
     ),
   );
 }

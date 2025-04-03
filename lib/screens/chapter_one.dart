@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import './lesson_one.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ChapterOneScreen extends StatefulWidget {
   const ChapterOneScreen({super.key});
@@ -9,63 +10,87 @@ class ChapterOneScreen extends StatefulWidget {
 }
 
 class _ChapterOneScreenState extends State<ChapterOneScreen> {
+  Future<List<Widget>> readLessons() async {
+    List<Widget> lessonsData = [];
+    try {
+      QuerySnapshot<Map<String, dynamic>> querySnapshot =
+          await FirebaseFirestore.instance
+              .collection('chapters/1/lessons')
+              .get();
 
-  void _navigateToLesson(int lessonNumber, bool isLocked) {
-  if (isLocked) {
-    // Show a dialog or snackbar indicating the chapter is locked
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('This lesson is locked. Complete previous lessons first.'),
-        duration: Duration(seconds: 2),
+      Map<String, dynamic> lessonData;
+      for (QueryDocumentSnapshot<Map<String, dynamic>> doc
+          in querySnapshot.docs) {
+        lessonData = doc.data();
+        lessonsData.add(_buildLessonCard(
+            title: "Lesson ${doc.id}",
+            subtitle: lessonData['title'],
+            isUnlocked: true,
+            onTap: () => _navigateToLesson(doc.toString(), false)));
+      }
+      return lessonsData;
+    } catch (e) {
+      // print('Error reading lessons: $e');
+      return []; // Return an empty list in case of an error
+    }
+  }
+
+  void _navigateToLesson(String lessonNumber, bool isLocked) {
+    if (isLocked) {
+      // Show a dialog or snackbar indicating the chapter is locked
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content:
+              Text('This lesson is locked. Complete previous lessons first.'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
+    Widget lessonScreen = const LessonScreen();
+    switch (lessonNumber) {
+      case "1":
+        lessonScreen = const LessonScreen();
+        break;
+      // case "2":
+      //   //chapterScreen = const ChapterTwoScreen();
+      //   break;
+      // case 3:
+      //   //chapterScreen = const ChapterThreeScreen();
+      //   break;
+      // case 4:
+      //   //chapterScreen = const ChapterFourScreen();
+      //   break;
+      default:
+        lessonScreen = const LessonScreen();
+    }
+
+    // Use PageRouteBuilder for custom fade transition
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) => lessonScreen,
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          // Create a fade transition
+          return FadeTransition(
+            opacity: animation,
+            // Add a slight scale effect for smoother appearance
+            child: SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(0.0, 0.05),
+                end: Offset.zero,
+              ).animate(CurvedAnimation(
+                parent: animation,
+                curve: Curves.easeOutQuint,
+              )),
+              child: child,
+            ),
+          );
+        },
+        transitionDuration: const Duration(milliseconds: 400),
       ),
     );
-    return;
   }
-
-  Widget lessonScreen = const LessonScreen();
-  switch (lessonNumber) {
-    case 1:
-      lessonScreen = const LessonScreen();
-      break;
-    case 2:
-      //chapterScreen = const ChapterTwoScreen();
-      break;
-    case 3:
-      //chapterScreen = const ChapterThreeScreen();
-      break;
-    case 4:
-      //chapterScreen = const ChapterFourScreen();
-      break;
-    default:
-      lessonScreen = const LessonScreen();
-  }
-
-  // Use PageRouteBuilder for custom fade transition
-  Navigator.of(context).push(
-    PageRouteBuilder(
-      pageBuilder: (context, animation, secondaryAnimation) => lessonScreen,
-      transitionsBuilder: (context, animation, secondaryAnimation, child) {
-        // Create a fade transition
-        return FadeTransition(
-          opacity: animation,
-          // Add a slight scale effect for smoother appearance
-          child: SlideTransition(
-            position: Tween<Offset>(
-              begin: const Offset(0.0, 0.05),
-              end: Offset.zero,
-            ).animate(CurvedAnimation(
-              parent: animation,
-              curve: Curves.easeOutQuint,
-            )),
-            child: child,
-          ),
-        );
-      },
-      transitionDuration: const Duration(milliseconds: 400),
-    ),
-  );
-}
-
 
   Widget sidebarElement(String title, IconData icon, bool isActive,
       [Function? method]) {
@@ -106,7 +131,9 @@ class _ChapterOneScreenState extends State<ChapterOneScreen> {
   Widget build(BuildContext context) {
     double width = MediaQuery.of(context).size.width;
     double progressValue = 0.3;
-    
+
+    // FirebaseFirestore .instance
+
     return Scaffold(
       body: Row(
         children: [
@@ -179,7 +206,7 @@ class _ChapterOneScreenState extends State<ChapterOneScreen> {
                     children: [
                       Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 16, 
+                          horizontal: 16,
                           vertical: 8,
                         ),
                         decoration: BoxDecoration(
@@ -199,7 +226,7 @@ class _ChapterOneScreenState extends State<ChapterOneScreen> {
                       const SizedBox(width: 10),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 16, 
+                          horizontal: 16,
                           vertical: 8,
                         ),
                         decoration: BoxDecoration(
@@ -228,7 +255,7 @@ class _ChapterOneScreenState extends State<ChapterOneScreen> {
                     thickness: 1,
                   ),
                   const SizedBox(height: 10),
-                  
+
                   // Chapter-specific content below
                   Expanded(
                     child: Row(
@@ -236,94 +263,105 @@ class _ChapterOneScreenState extends State<ChapterOneScreen> {
                         Expanded(
                           flex: 3,
                           child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              const Text(
-                                "Chapter 2",
-                                style: TextStyle(
-                                  fontSize: 25,
-                                  fontWeight: FontWeight.normal,
-                                  color: Colors.black,
-                                ),
-                              ),
-                              const SizedBox(height: 3),
-                              const Text(
-                                "FINGER SPELL IT",
-                                style: TextStyle(
-                                  fontSize: 30,
-                                  fontWeight: FontWeight.w700,
-                                  color: Colors.black,
-                                ),
-                              ),
-                              const SizedBox(height: 3),
-                              const Text(
-                                "Learn the universal language of numbers through gestures",
-                                style: TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.normal,
-                                  color: Colors.black,
-                                ),
-                               
-                              ),
-                              const Divider(
-                                color: Colors.black,
-                                thickness: 2,
-                                indent: 20,
-                                endIndent: 20,
-                              ),
-                              const SizedBox(height: 20),
-                              Align(
-                                alignment: Alignment.topLeft,
-                                child: Text(
-                                  "Progress: ${(progressValue * 100).toInt()}%",
-                                  style: const TextStyle(
-                                    fontSize: 15,
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                const Text(
+                                  "Chapter 2",
+                                  style: TextStyle(
+                                    fontSize: 25,
+                                    fontWeight: FontWeight.normal,
+                                    color: Colors.black,
                                   ),
                                 ),
-                              ),
-                              const SizedBox(height: 5),
-                              LinearProgressIndicator(
-                                
-                                value: progressValue,
-                                minHeight: 10,
-                                borderRadius: BorderRadius.circular(10),
-                                color: Colors.green[500],
-                                backgroundColor: Colors.grey[200],
-                              ),
-                              const SizedBox(height: 25),
-                              
-                              const SizedBox(height: 10),
-                              Expanded(
-                              child: Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.all(10),  // Equal padding on all sides
-                                child: SingleChildScrollView(
-                                  child: Wrap(
-                                    spacing: 10, // horizontal space between cards
-                                    runSpacing: 10, // vertical space between rows
-                                    alignment: WrapAlignment.spaceBetween,
-                                    children: <Widget>[
-                                      _buildLessonCard(title: "Lesson 1", subtitle: "Alphabet A-G",isUnlocked:  true,isCompleted:  true, onTap: () => _navigateToLesson(1, false),),
-                                      _buildLessonCard(title: "Lesson 1", subtitle: "Alphabet A-G",isUnlocked:  true,isCompleted:  false, onTap: () => _navigateToLesson(1, false),),
-                                      _buildLessonCard(title: "Lesson 1", subtitle: "Alphabet A-G",isUnlocked:  false,isCompleted:  false, onTap: () => _navigateToLesson(1, false),),
-                                      _buildLessonCard(title: "Lesson 1", subtitle: "Alphabet A-G",isUnlocked:  false,isCompleted:  false, onTap: () => _navigateToLesson(1, false),),
-                                      _buildLessonCard(title: "Lesson 1", subtitle: "Alphabet A-G",isUnlocked:  false,isCompleted:  false, onTap: () => _navigateToLesson(1, false),),
-                                      _buildLessonCard(title: "Lesson 1", subtitle: "Alphabet A-G",isUnlocked:  false,isCompleted:  false, onTap: () => _navigateToLesson(1, false),),
-                                      _buildLessonCard(title: "Lesson 1", subtitle: "Alphabet A-G",isUnlocked:  false,isCompleted:  false, onTap: () => _navigateToLesson(1, false),),
-                                      _buildLessonCard(title: "Lesson 1", subtitle: "Alphabet A-G",isUnlocked:  false,isCompleted:  false, onTap: () => _navigateToLesson(1, false),),
-                                      _buildLessonCard(title: "Lesson 1", subtitle: "Alphabet A-G",isUnlocked:  false,isCompleted:  false, onTap: () => _navigateToLesson(1, false),),
-                                      _buildLessonCard(title: "Lesson 1", subtitle: "Alphabet A-G",isUnlocked:  false,isCompleted:  false, onTap: () => _navigateToLesson(1, false),),
-                                      _buildLessonCard(title: "Lesson 1", subtitle: "Alphabet A-G",isUnlocked:  false,isCompleted:  false, onTap: () => _navigateToLesson(1, false),),
-                                   
-                                    ],
+                                const SizedBox(height: 3),
+                                const Text(
+                                  "FINGER SPELL IT",
+                                  style: TextStyle(
+                                    fontSize: 30,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.black,
                                   ),
                                 ),
-                              ),
-                              ),
-                              const SizedBox(height: 20),
-                              
-                            ],
-                          ),
+                                const SizedBox(height: 3),
+                                const Text(
+                                  "Learn the universal language of numbers through gestures",
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.normal,
+                                    color: Colors.black,
+                                  ),
+                                ),
+                                const Divider(
+                                  color: Colors.black,
+                                  thickness: 2,
+                                  indent: 20,
+                                  endIndent: 20,
+                                ),
+                                const SizedBox(height: 20),
+                                Align(
+                                  alignment: Alignment.topLeft,
+                                  child: Text(
+                                    "Progress: ${(progressValue * 100).toInt()}%",
+                                    style: const TextStyle(
+                                      fontSize: 15,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 5),
+                                LinearProgressIndicator(
+                                  value: progressValue,
+                                  minHeight: 10,
+                                  borderRadius: BorderRadius.circular(10),
+                                  color: Colors.green[500],
+                                  backgroundColor: Colors.grey[200],
+                                ),
+                                const SizedBox(height: 25),
+                                const SizedBox(height: 10),
+                                Expanded(
+                                  child: Container(
+                                      width: double.infinity,
+                                      padding: const EdgeInsets.all(
+                                          10), // Equal padding on all sides
+                                      child: SingleChildScrollView(
+                                          child: FutureBuilder<List<Widget>>(
+                                        future:
+                                            readLessons(), // Call your async function here
+                                        builder: (context, snapshot) {
+                                          if (snapshot.connectionState ==
+                                              ConnectionState.waiting) {
+                                            return const Center(
+                                                child:
+                                                    CircularProgressIndicator());
+                                          } else if (snapshot.hasError) {
+                                            return Center(
+                                                child: Text(
+                                                    'Error: ${snapshot.error}'));
+                                          } else if (!snapshot.hasData ||
+                                              snapshot.data!.isEmpty) {
+                                            return const Center(
+                                                child:
+                                                    Text('No widgets found.'));
+                                          } else {
+                                            // The list of widgets has been successfully returned
+                                            List<Widget> lessonWidgets =
+                                                snapshot.data!;
+
+                                            // Directly use the returned list as children
+                                            return Wrap(
+                                              spacing:
+                                                  10, // horizontal space between cards
+                                              runSpacing:
+                                                  10, // vertical space between rows
+                                              alignment:
+                                                  WrapAlignment.spaceAround,
+                                              children: lessonWidgets,
+                                            );
+                                          }
+                                        },
+                                      ))),
+                                )
+                              ]),
+                          // const SizedBox(height: 20),
                         ),
                         const SizedBox(width: 20),
                         Container(
@@ -353,69 +391,79 @@ class _ChapterOneScreenState extends State<ChapterOneScreen> {
       ),
     );
   }
-  
-  Widget _buildLessonCard({required String title,required String subtitle, bool isUnlocked=false, bool isCompleted=false,required Function onTap,}
-) {
-   return GestureDetector(
-    onTap: () => onTap(),
-    child: Container(
-      width: 160,
-      height: 100, // Fixed height for the card
-      margin: const EdgeInsets.all(5),
-      decoration: BoxDecoration(
-        color: isUnlocked ? Colors.white : Colors.grey[300],
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: isCompleted ? Colors.green : Colors.grey.shade300,
-          width: 2,
-        ),
-        boxShadow: isUnlocked ? [
-          BoxShadow(
-            color: Colors.grey,
-            spreadRadius: 1,
-            blurRadius: 3,
-            offset: const Offset(0, 2),
+
+  Widget _buildLessonCard({
+    required String title,
+    required String subtitle,
+    bool isUnlocked = false,
+    bool isCompleted = false,
+    required Function onTap,
+  }) {
+    return GestureDetector(
+      onTap: () => onTap(),
+      child: Container(
+        width: 160,
+        height: 100, // Fixed height for the card
+        margin: const EdgeInsets.all(5),
+        decoration: BoxDecoration(
+          color: isUnlocked ? Colors.white : Colors.grey[300],
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: isCompleted ? Colors.green : Colors.grey.shade300,
+            width: 2,
           ),
-        ] : null,
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min, // This prevents the Column from expanding infinitely
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: isUnlocked ? Colors.black : Colors.grey[600],
+          boxShadow: isUnlocked
+              ? [
+                  BoxShadow(
+                    color: Colors.grey,
+                    spreadRadius: 1,
+                    blurRadius: 3,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(12.0),
+          child: Column(
+            mainAxisSize: MainAxisSize
+                .min, // This prevents the Column from expanding infinitely
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: isUnlocked ? Colors.black : Colors.grey[600],
+                ),
               ),
-            ),
-            const SizedBox(height: 5),
-            Text(
-              subtitle,
-              style: TextStyle(
-                fontSize: 14,
-                color: isUnlocked ? Colors.black87 : Colors.grey[600],
+              const SizedBox(height: 5),
+              Text(
+                subtitle,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: isUnlocked ? Colors.black87 : Colors.grey[600],
+                ),
               ),
-            ),
-            const Spacer(), // We can use Spacer here because the parent has a fixed height
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                if (isCompleted)
-                  const Icon(Icons.check_circle, color: Colors.green, size: 24)
-                else if (isUnlocked)
-                  const Icon(Icons.play_circle_fill, color: Colors.deepPurple, size: 24)
-                else
-                  const Icon(Icons.lock, color: Colors.grey, size: 24),
-              ],
-            ),
-          ],
+              const Spacer(), // We can use Spacer here because the parent has a fixed height
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  if (isCompleted)
+                    const Icon(Icons.check_circle,
+                        color: Colors.green, size: 24)
+                  else if (isUnlocked)
+                    const Icon(Icons.play_circle_fill,
+                        color: Colors.deepPurple, size: 24)
+                  else
+                    const Icon(Icons.lock, color: Colors.grey, size: 24),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
-    ),
     );
   }
 }
