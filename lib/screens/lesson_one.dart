@@ -9,7 +9,9 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class LessonScreen extends StatefulWidget {
-  const LessonScreen({super.key});
+  const LessonScreen({super.key, this.symbol});
+
+  final String? symbol;
 
   @override
   State<LessonScreen> createState() => _LessonScreenState();
@@ -26,7 +28,7 @@ class _LessonScreenState extends State<LessonScreen>
   String? _videoError;
 
   // Alphabet test related state
-  String _currentLetter = 'A'; // Initial letter
+  late String _currentLetter; // Initial letter
   String _evaluationResult = ''; // Evaluation result
   int _timerSeconds = 5;
   Timer? _countdownTimer;
@@ -37,6 +39,15 @@ class _LessonScreenState extends State<LessonScreen>
     super.initState();
     _initializeVideo();
     _initializeCamera();
+    _currentLetter =
+        widget.symbol?.toUpperCase() ?? 'A'; // Default to 'A' if symbol is null
+    if (widget.symbol != null) {
+      print(
+          'Symbol received: ${widget.symbol}, currentLetter set to: $_currentLetter');
+      // Perform any actions based on the symbol
+    } else {
+      print('No symbol received, currentLetter defaulted to: $_currentLetter');
+    }
   }
 
   Future<void> _initializeVideo() async {
@@ -141,21 +152,46 @@ class _LessonScreenState extends State<LessonScreen>
     });
   }
 
-  void _updateEvaluationResult(String result) {
-    if (_currentLetter == result) {
-      // mark it completed for the user
-      FirebaseFirestore.instance.collection(
-          // to be replaced with active user id
-          "user_collections/YkYXLIGLTGPA0eIuSzwroYZyDdO2/lessons_done").add({
-        "lessonid": "chapters/1/lessons/1",
-        "completed": DateTime.now()
-      });
+  void _updateEvaluationResult(String result,
+      {int chapterNumber = 1, int lessonNumber = 1}) {
+    // Get current user ID from Firebase Auth
+    final String userId = FirebaseAuth.instance.currentUser?.uid ?? '';
 
-      // add XP to user in Firebase
+    // Check if user is logged in
+    if (userId.isEmpty) {
+      print("Error: No user is logged in");
+      setState(() {
+        _evaluationResult = result;
+        _isTakingPicture = false;
+      });
+      return;
+    }
+
+    print(_currentLetter);
+    print(result);
+
+    if (_currentLetter == result) {
+      print("Correct letter detected");
+
+      // Create a lesson completion data object with dynamic chapter and lesson numbers
+      // Use DateTime.now() instead of FieldValue.serverTimestamp()
+      Map<String, dynamic> lessonData = {
+        "lessonid": "chapters/$chapterNumber/lessons/$lessonNumber",
+        "completed": DateTime.now().toIso8601String()
+      };
+
+      // Update the user document by adding to the lessons_completed array
       FirebaseFirestore.instance
           .collection("user_collections")
-          .doc("YkYXLIGLTGPA0eIuSzwroYZyDdO2")
-          .update({"xp": FieldValue.increment(1)});
+          .doc(userId)
+          .update({
+        "lessons_completed": FieldValue.arrayUnion([lessonData]),
+        "xp": FieldValue.increment(1)
+      }).then((_) {
+        print("Database updated successfully");
+      }).catchError((error) {
+        print("Error updating database: $error");
+      });
     }
 
     setState(() {

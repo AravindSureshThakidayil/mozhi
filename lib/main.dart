@@ -3,9 +3,11 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mozhi/evaluation/alphabet_test.dart';
+import 'package:mozhi/methods/initchapters.dart';
 import 'firebase_options.dart';
 import 'package:flutter/material.dart';
 import 'package:mozhi/authentication/screens/create_account.dart';
+import 'package:mozhi/screens/rank_Screen.dart';
 import 'package:mozhi/authentication/screens/login.dart';
 import 'package:mozhi/components/camera.dart';
 import './authentication/screens/signout_screen.dart';
@@ -14,6 +16,7 @@ import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import 'components/video.dart';
 import './screens/chapter_one.dart';
+import './screens/profile_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -54,6 +57,7 @@ class _MyHomePageState extends State<MyHomePage> {
   void initState() {
     isSignedIn();
     super.initState(); // Initialize with false initially
+    initializeChapterCount();
   }
 
   Future<void> isSignedIn() async {
@@ -115,25 +119,30 @@ class _MyHomePageState extends State<MyHomePage> {
     try {
       QuerySnapshot<Map<String, dynamic>> querySnapshot =
           await FirebaseFirestore.instance.collection("chapters").get();
+    
 
       Map<String, dynamic> chapterData;
       for (QueryDocumentSnapshot<Map<String, dynamic>> doc
           in querySnapshot.docs) {
         chapterData = doc.data();
+
         chapters.add(_buildChapterCard(
             chapterNumber: doc.id,
             title: chapterData['title'],
             description: chapterData['description'],
-            onTap: () => _navigateToChapter(doc.id, false)));
+            onTap: () => _navigateToChapter(int.parse(doc.id), false)));
+       
       }
-    } catch (e) {}
+    } catch (e) {
+      print(e);
+    }
 
     return chapters;
   }
 
   // In main.dart, modify the _navigateToChapter method to use a PageRouteBuilder with transition:
 
-  void _navigateToChapter(String chapterNumber, bool isLocked) {
+  void _navigateToChapter(int chapterNumber, bool isLocked) {
     if (isLocked) {
       // Show a dialog or snackbar indicating the chapter is locked
       ScaffoldMessenger.of(context).showSnackBar(
@@ -146,24 +155,7 @@ class _MyHomePageState extends State<MyHomePage> {
       return;
     }
 
-    Widget chapterScreen = const ChapterOneScreen();
-    switch (chapterNumber) {
-      case "1":
-        chapterScreen = const ChapterOneScreen();
-        break;
-      // case 2:
-      //   //chapterScreen = const ChapterTwoScreen();
-      //   break;
-      // case 3:
-      //   //chapterScreen = const ChapterThreeScreen();
-      //   break;
-      // case 4:
-      //   //chapterScreen = const ChapterFourScreen();
-      //   break;
-      default:
-        chapterScreen = const ChapterOneScreen();
-    }
-
+    Widget chapterScreen = ChapterScreen(chapterNumber: chapterNumber);
     // Use PageRouteBuilder for custom fade transition
     Navigator.of(context).push(
       PageRouteBuilder(
@@ -234,9 +226,26 @@ class _MyHomePageState extends State<MyHomePage> {
                 )),
             sidebarElement("Home", Icons.home, true),
             const SizedBox(height: 10),
-            sidebarElement("Rankings", Icons.bar_chart, false),
+            sidebarElement("Rankings", Icons.bar_chart, false, () {
+              Navigator.of(context)
+                  .push(
+                MaterialPageRoute(
+                  builder: (context) => RankScreen(),
+                ),
+              )
+                  .then((_) {
+                // Returning to start when coming back from RankScreen
+                Navigator.of(context).popUntil((route) => route.isFirst);
+              });
+            }),
             const SizedBox(height: 10),
-            sidebarElement("Profile", Icons.person_outline, false),
+           sidebarElement("Profile", Icons.person_outline, false, () {
+  Navigator.of(context).push(
+    MaterialPageRoute(
+      builder: (context) => const ProfileScreen(),
+    ),
+  );
+}),
             const SizedBox(height: 10),
             _testCamera(context: context),
 
@@ -367,54 +376,18 @@ class _MyHomePageState extends State<MyHomePage> {
                                             child: Text('No widgets found.'));
                                       } else {
                                         // The list of widgets has been successfully returned
-                                        List<Widget> lessonWidgets =
+                                        List<Widget> chapterWidgets =
                                             snapshot.data!;
-
-                                        return Column(children: lessonWidgets);
+                                        return Wrap(
+                                          // Use Wrap instead of Column
+                                          spacing:
+                                              10.0, // Adjust spacing as needed
+                                          runSpacing:
+                                              10.0, // Adjust run spacing as needed
+                                          children: chapterWidgets,
+                                        );
                                       }
-                                    })
-                                // Add this wrapper
-                                // child: Column(
-                                //   children: [
-                                //     _buildChapterCard(
-                                //       chapterNumber: "1",
-                                //       title: "COUNTING WITH HANDS",
-                                //       description:
-                                //           "Learn the universal language of numbers through gestures.",
-                                //       isActive: true,
-                                //       onTap: () => _navigateToChapter(1, false),
-                                //     ),
-                                //     const SizedBox(height: 20),
-                                //     _buildChapterCard(
-                                //       chapterNumber: "2",
-                                //       title: "FINGER SPELL IT",
-                                //       description:
-                                //           "Master the art of alphabets in sign language.",
-                                //       isActive: true,
-                                //       onTap: () => _navigateToChapter(1, false),
-                                //     ),
-                                //     const SizedBox(height: 20),
-                                //     _buildChapterCard(
-                                //       chapterNumber: "3",
-                                //       title: "EVERYDAY EXPRESSIONS",
-                                //       description:
-                                //           "Express yourself with common phrases and gestures.",
-                                //       isLocked: true,
-                                //       onTap: () => _navigateToChapter(1, false),
-                                //     ),
-                                //     const SizedBox(height: 20),
-                                //     _buildChapterCard(
-                                //       chapterNumber: "4",
-                                //       title: "EVERYDAY EXPRESSIONS",
-                                //       description:
-                                //           "Express yourself with common phrases and gestures.",
-                                //       isLocked: true,
-                                //       onTap: () => _navigateToChapter(1, false),
-                                //     ),
-                                //     // Add more chapters as needed
-                                //   ],
-                                // ),
-                                ),
+                                    })),
                           ),
 
                           // Right Side Images
