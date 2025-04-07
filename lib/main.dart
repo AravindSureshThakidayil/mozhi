@@ -115,6 +115,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Future<List<Widget>> readChapters() async {
+    int count=0;
     List<Widget> chapters = [];
     try {
       QuerySnapshot<Map<String, dynamic>> querySnapshot =
@@ -125,13 +126,14 @@ class _MyHomePageState extends State<MyHomePage> {
       for (QueryDocumentSnapshot<Map<String, dynamic>> doc
           in querySnapshot.docs) {
         chapterData = doc.data();
+        print(doc.data());
 
         chapters.add(_buildChapterCard(
-            chapterNumber: doc.id,
-            title: chapterData['title'],
+            chapterNumber: count.toString(),
+            title: doc.id,
             description: chapterData['description'],
             onTap: () => _navigateToChapter(int.parse(doc.id), false)));
-       
+        count++;
       }
     } catch (e) {
       print(e);
