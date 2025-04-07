@@ -26,9 +26,9 @@ class _ChapterScreenState extends State<ChapterScreen> {
         lessonData = doc.data();
         lessonsData.add(_buildLessonCard(
             title: "Lesson ${doc.id}",
-            subtitle: lessonData['title']+"-"+doc.id,
+            subtitle: lessonData['title'],
             isUnlocked: true,
-            onTap: () => _navigateToLesson(lessonData['title'], false)));
+            onTap: () => _navigateToLesson(lessonData['title'], widget.chapterNumber,false)));
       }
       return lessonsData;
     } catch (e) {
@@ -37,7 +37,7 @@ class _ChapterScreenState extends State<ChapterScreen> {
     }
   }
 
-  void _navigateToLesson(String sign, bool isLocked) {
+  void _navigateToLesson(String sign,int chapterNumber, bool isLocked) {
     if (isLocked) {
       // Show a dialog or snackbar indicating the chapter is locked
       ScaffoldMessenger.of(context).showSnackBar(
@@ -50,7 +50,7 @@ class _ChapterScreenState extends State<ChapterScreen> {
       return;
     }
 
-    Widget lessonScreen = LessonScreen(symbol: sign);
+    Widget lessonScreen = LessonScreen(symbol: sign,chapterNumber: chapterNumber);
     // You might want to pass the lessonNumber or other relevant data to the LessonScreen
     Navigator.of(context).push(
       PageRouteBuilder(

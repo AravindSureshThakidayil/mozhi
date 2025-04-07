@@ -36,9 +36,39 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  Future<Map<String, String>> fetchLessonChapterMappings() async {
+    Map<String, String> lessonIdToChapter = {};
+    try {
+      final chaptersRef = FirebaseFirestore.instance.collection('chapters');
+      final chaptersSnapshot = await chaptersRef.get();
+
+      for (var chapterDoc in chaptersSnapshot.docs) {
+        final chapterData = chapterDoc.data();
+        final chapterName = chapterData['name'] ?? 'Unknown Chapter';
+        final chapterNumber = chapterDoc.id;
+
+        final lessonsRef = chapterDoc.reference.collection('lessons');
+        final lessonsSnapshot = await lessonsRef.get();
+
+        for (var lessonDoc in lessonsSnapshot.docs) {
+          final lessonId = 'chapters/${chapterNumber}/lessons/${lessonDoc.id}';
+          lessonIdToChapter[lessonId] =
+              'Chapter ${chapterNumber}: ${chapterName}';
+        }
+      }
+
+      print(
+          'Successfully fetched ${lessonIdToChapter.length} lesson-to-chapter mappings');
+    } catch (e) {
+      print('Error fetching chapter data: $e');
+    }
+
+    return lessonIdToChapter;
+  }
+
   void _sendToLogin() {
-    Navigator.of(context)
-        .pushReplacement(MaterialPageRoute(builder: (context) => const LoginScreen()));
+    Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => const LoginScreen()));
   }
 
   void _sendToLogout() async {
@@ -46,8 +76,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     setState(() {
       _isSignedIn = false;
     });
-    Navigator.of(context)
-        .pushReplacement(MaterialPageRoute(builder: (context) => const SignoutScreen()));
+    Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => const SignoutScreen()));
   }
 
   Widget sidebarElement(String title, IconData icon, bool isActive,
@@ -84,11 +114,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildProfileHeader(AsyncSnapshot<DocumentSnapshot<Map<String, dynamic>>> snapshot) {
+  Widget _buildProfileHeader(
+      AsyncSnapshot<DocumentSnapshot<Map<String, dynamic>>> snapshot) {
     final userData = snapshot.data!.data();
     final username = userData?['username'] as String? ?? 'Guest';
     final email = userData?['email'] as String? ?? '';
-    const profileImageUrl = ''; // You might have a profile image URL in Firebase
+    const profileImageUrl =
+        ''; // You might have a profile image URL in Firebase
 
     return Row(
       children: [
@@ -124,7 +156,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       color: const Color.fromARGB(255, 196, 35, 205),
                       borderRadius: BorderRadius.circular(14),
                     ),
-                    child: const Icon(Icons.edit, color: Colors.white, size: 18),
+                    child:
+                        const Icon(Icons.edit, color: Colors.white, size: 18),
                   ),
                 ),
               ],
@@ -157,7 +190,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildXpProgress(AsyncSnapshot<DocumentSnapshot<Map<String, dynamic>>> snapshot) {
+  Widget _buildXpProgress(
+      AsyncSnapshot<DocumentSnapshot<Map<String, dynamic>>> snapshot) {
     final userData = snapshot.data!.data();
     final xp = userData?['xp'] as int? ?? 0;
     const maxXp = 100; // You might want to fetch this from somewhere
@@ -192,8 +226,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             Padding(
               padding: EdgeInsets.only(
-                  left: (xp / maxXp) * MediaQuery.of(context).size.width * 0.6 + 8),
-              child: Text('$xp / $maxXp XP', style: const TextStyle(fontSize: 16)),
+                  left: (xp / maxXp) * MediaQuery.of(context).size.width * 0.6 +
+                      8),
+              child:
+                  Text('$xp / $maxXp XP', style: const TextStyle(fontSize: 16)),
             ),
           ],
         ),
@@ -202,10 +238,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildCompletedLessons(AsyncSnapshot<DocumentSnapshot<Map<String, dynamic>>> snapshot) {
+Widget _buildCompletedLessons(
+      AsyncSnapshot<DocumentSnapshot<Map<String, dynamic>>> snapshot) {
     final userData = snapshot.data!.data();
-    final completedLessonsData = userData?['lessons_completed'] as List<dynamic>? ?? [];
-    final List<Map<String, dynamic>> completedLessons = completedLessonsData.map((item) {
+    final completedLessonsData =
+        userData?['lessons_completed'] as List<dynamic>? ?? [];
+    final List<Map<String, dynamic>> completedLessons =
+        completedLessonsData.map((item) {
       final completedTimestamp = item['completed'] as String?;
       DateTime? completedAt;
       if (completedTimestamp != null) {
@@ -217,87 +256,93 @@ class _ProfileScreenState extends State<ProfileScreen> {
       };
     }).toList();
 
-    // For demonstration, let's map lesson IDs to names. In a real app,
-    // you would likely fetch lesson details based on the lesson ID.
-    final Map<String, String> lessonIdToName = {
-      'chapters/1/lessons/1': 'Lesson 1: Introduction to Basics',
-      // Add more mappings as needed
-    };
-    final Map<String, String> lessonIdToChapter = {
-      'chapters/1/lessons/1': 'Chapter 1: Getting Started',
-      // Add more mappings as needed
-    };
+    return FutureBuilder<Map<String, String>>(
+      future: fetchLessonChapterMappings(),
+      builder: (context, chapterMappingSnapshot) {
+        if (chapterMappingSnapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
 
-    // Group completed lessons by chapter
-    final Map<String, List<Map<String, dynamic>>> lessonsByChapter = {};
-    for (var lesson in completedLessons) {
-      final lessonId = lesson['lessonid'];
-      final chapter = lessonIdToChapter[lessonId] ?? 'Unknown Chapter';
-      if (!lessonsByChapter.containsKey(chapter)) {
-        lessonsByChapter[chapter] = [];
-      }
-      lessonsByChapter[chapter]!.add(lesson);
-    }
+        if (chapterMappingSnapshot.hasError) {
+          return Text('Error loading chapter data: ${chapterMappingSnapshot.error}');
+        }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Completed Lessons',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 8),
-        if (completedLessons.isEmpty)
-          const Text('No lessons completed yet.')
-        else
-          ...lessonsByChapter.entries.map((entry) {
-            final chapterName = entry.key;
-            final lessonsInChapter = entry.value;
+        final lessonIdToChapter = chapterMappingSnapshot.data ?? {};
 
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  chapterName,
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-                ),
-                const Divider(height: 8),
-                ListView.separated(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: lessonsInChapter.length,
-                  separatorBuilder: (context, index) => const Divider(height: 1),
-                  itemBuilder: (context, index) {
-                    final lesson = lessonsInChapter[index];
-                    final lessonName = lessonIdToName[lesson['lessonid']] ?? lesson['lessonid'];
-                    final DateTime? completedAt = lesson['completedAt'];
-                    String formattedDate = 'N/A';
-                    String formattedTime = 'N/A';
-                    if (completedAt != null) {
-                      formattedDate = DateFormat('dd-MM-yyyy').format(completedAt);
-                      formattedTime = DateFormat('HH:mm').format(completedAt);
-                    }
+        // Group completed lessons by chapter
+        final Map<String, List<Map<String, dynamic>>> lessonsByChapter = {};
+        for (var lesson in completedLessons) {
+          final lessonId = lesson['lessonid'];
+          final chapter = lessonIdToChapter[lessonId] ?? 'Unknown Chapter';
+          if (!lessonsByChapter.containsKey(chapter)) {
+            lessonsByChapter[chapter] = [];
+          }
+          lessonsByChapter[chapter]!.add(lesson);
+        }
 
-                    return ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: const Icon(Icons.check_circle_outline, color: Colors.green),
-                      title: Text(lessonName),
-                      subtitle: Text(
-                        'Completed on $formattedDate at $formattedTime',
-                        style: const TextStyle(color: Colors.grey),
-                      ),
-                      onTap: () {
-                        print(
-                            'Tapped on completed lesson: $lessonName in $chapterName');
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Completed Lessons',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            if (completedLessons.isEmpty)
+              const Text('No lessons completed yet.')
+            else
+              ...lessonsByChapter.entries.map((entry) {
+                final chapterName = entry.key;
+                final lessonsInChapter = entry.value;
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      chapterName,
+                      style: const TextStyle(
+                          fontSize: 18, fontWeight: FontWeight.w600),
+                    ),
+                    const Divider(height: 8),
+                    ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: lessonsInChapter.length,
+                      separatorBuilder: (context, index) =>
+                          const Divider(height: 1),
+                      itemBuilder: (context, index) {
+                        final lesson = lessonsInChapter[index];
+                        final DateTime? completedAt = lesson['completedAt'];
+                        String formattedDate = 'N/A';
+                        String formattedTime = 'N/A';
+                        if (completedAt != null) {
+                          formattedDate = DateFormat('dd-MM-yyyy').format(completedAt);
+                          formattedTime = DateFormat('HH:mm').format(completedAt);
+                        }
+
+                        return ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: const Icon(Icons.check_circle_outline,
+                              color: Colors.green),
+                          title: Text('Lesson ${index + 1}'),
+                          subtitle: Text(
+                            'Completed on $formattedDate at $formattedTime',
+                            style: const TextStyle(color: Colors.grey),
+                          ),
+                          onTap: () {
+                            print(
+                                'Tapped on completed lesson: ${index + 1} in $chapterName');
+                          },
+                        );
                       },
-                    );
-                  },
-                ),
-                const SizedBox(height: 10),
-              ],
-            );
-          }).toList(),
-      ],
+                    ),
+                    const SizedBox(height: 10),
+                  ],
+                );
+              }).toList(),
+          ],
+        );
+      },
     );
   }
 
@@ -391,13 +436,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     borderRadius: BorderRadius.all(Radius.circular(10)),
                   ),
                   child: SingleChildScrollView(
-                    child: FutureBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+                    child:
+                        FutureBuilder<DocumentSnapshot<Map<String, dynamic>>>(
                       future: _userDataFuture,
                       builder: (context, snapshot) {
-                        if (snapshot.connectionState == ConnectionState.waiting) {
-                          return const Center(child: CircularProgressIndicator());
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return const Center(
+                              child: CircularProgressIndicator());
                         } else if (snapshot.hasError) {
-                          return Center(child: Text('Error loading profile: ${snapshot.error}'));
+                          return Center(
+                              child: Text(
+                                  'Error loading profile: ${snapshot.error}'));
                         } else if (snapshot.hasData && snapshot.data!.exists) {
                           return Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -410,7 +460,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ],
                           );
                         } else {
-                          return const Center(child: Text('Profile data not found.'));
+                          return const Center(
+                              child: Text('Profile data not found.'));
                         }
                       },
                     ),

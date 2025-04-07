@@ -3,15 +3,15 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import 'package:camera/camera.dart';
-import 'dart:io';
 import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class LessonScreen extends StatefulWidget {
-  const LessonScreen({super.key, this.symbol});
+  const LessonScreen({super.key, this.symbol,this.chapterNumber});
 
   final String? symbol;
+  final int? chapterNumber;
 
   @override
   State<LessonScreen> createState() => _LessonScreenState();
@@ -39,8 +39,10 @@ class _LessonScreenState extends State<LessonScreen>
     super.initState();
     _initializeVideo();
     _initializeCamera();
-    _currentLetter =
-        widget.symbol?.toUpperCase() ?? 'A'; // Default to 'A' if symbol is null
+    String alphabet=widget.symbol?? 'A1';
+    _currentLetter = alphabet.toUpperCase()[0]; // Default to 'A' if symbol is null
+    int _level=int.parse(alphabet[1]);
+   // Default to 'A' if symbol is null
     if (widget.symbol != null) {
       print(
           'Symbol received: ${widget.symbol}, currentLetter set to: $_currentLetter');
@@ -156,6 +158,7 @@ class _LessonScreenState extends State<LessonScreen>
       {int chapterNumber = 1, int lessonNumber = 1}) {
     // Get current user ID from Firebase Auth
     final String userId = FirebaseAuth.instance.currentUser?.uid ?? '';
+    print("Chapter number:$chapterNumber, Lesson number:$lessonNumber");
 
     // Check if user is logged in
     if (userId.isEmpty) {
@@ -264,7 +267,11 @@ class _LessonScreenState extends State<LessonScreen>
 
         var decodedResponse =
             jsonDecode(utf8.decode(response.bodyBytes)) as Map;
-        _updateEvaluationResult(decodedResponse['predicted'].toString());
+        _updateEvaluationResult(decodedResponse['predicted'].toString(),
+            chapterNumber: widget.chapterNumber ?? 1,
+            lessonNumber: widget.symbol != null
+                ? int.parse(widget.symbol![1])
+                : 1);
         print(decodedResponse);
         print("Current letter: $_currentLetter");
       } else {
@@ -337,9 +344,9 @@ class _LessonScreenState extends State<LessonScreen>
           children: [
             const Icon(Icons.error, color: Colors.red, size: 40),
             const SizedBox(height: 8),
-            Text(
+            const Text(
               "Video error",
-              style: const TextStyle(color: Colors.white),
+              style: TextStyle(color: Colors.white),
             ),
             // Debug button to retry loading
             TextButton(
@@ -418,9 +425,9 @@ class _LessonScreenState extends State<LessonScreen>
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
+        const Text(
           "Show the sign for:",
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w500,
             color: Colors.black87,
@@ -672,19 +679,19 @@ class _LessonScreenState extends State<LessonScreen>
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.start,
                                   children: [
-                                    Column(
+                                    const Column(
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,
                                         children: [
-                                          const Text(
+                                          Text(
                                             "Lesson 1",
                                             style: TextStyle(
                                               fontSize: 18,
                                               fontWeight: FontWeight.normal,
                                             ),
                                           ),
-                                          const SizedBox(height: 8),
-                                          const Text(
+                                          SizedBox(height: 8),
+                                          Text(
                                             "Basic Hand Signs",
                                             style: TextStyle(
                                               fontSize: 22,
