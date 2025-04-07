@@ -34,13 +34,13 @@ class _LessonScreenState extends State<LessonScreen>
   int _timerstore = 5;
   Timer? _countdownTimer;
   bool _isTakingPicture = false;
-  int _level=1;
+  int _level = 1;
 
   @override
   void initState() {
     super.initState();
     _initializeVideo();
-    _initializeCamera();
+    //_initializeCamera();
     String alphabet = widget.lesson ?? 'A1';
     _currentLetter =
         alphabet.toUpperCase()[0]; // Default to 'A' if symbol is null
@@ -196,14 +196,14 @@ class _LessonScreenState extends State<LessonScreen>
         "lessonid": "chapters/$chapterNumber/lessons/$lessonNumber",
         "completed": DateTime.now().toIso8601String()
       };
-      
+
       // Update the user document by adding to the lessons_completed array
       FirebaseFirestore.instance
           .collection("user_collections")
           .doc(userId)
           .update({
         "lessons_completed": FieldValue.arrayUnion([lessonData]),
-        "xp": FieldValue.increment(_level)
+        "xp": FieldValue.increment(_level),
       }).then((_) {
         print("Database updated successfully");
       }).catchError((error) {
@@ -735,7 +735,11 @@ class _LessonScreenState extends State<LessonScreen>
                                     ),
                                     const SizedBox(width: 20),
                                     GestureDetector(
-                                      onTap: () => _toggleMode(false),
+                                      onTap: () async {
+                                        // Initialize camera when switching to test mode
+                                        await _initializeCamera();
+                                        _toggleMode(false);
+                                      },
                                       child: Container(
                                         padding: const EdgeInsets.symmetric(
                                             horizontal: 40, vertical: 12),
