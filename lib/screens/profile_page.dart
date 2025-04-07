@@ -5,6 +5,9 @@ import 'package:mozhi/authentication/screens/signout_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
+import 'package:camera/camera.dart';
+import 'package:mozhi/methods/camera_service.dart';
+import 'dart:async';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -21,7 +24,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void initState() {
     super.initState();
     _userDataFuture = _fetchUserData();
+      _disableCamera();
   }
+
+  
+
+// Method to disable camera
+void _disableCamera() async {
+  try {
+    // Get list of cameras
+    final cameras = await availableCameras();
+    
+    // For each camera, create a controller and dispose it immediately
+    // This ensures any active camera instances are properly shut down
+    for (var camera in cameras) {
+        final controller = CameraController(
+          camera,
+          ResolutionPreset.low,
+          enableAudio: false,
+        );
+        
+        // Initialize and then immediately dispose
+        await controller.initialize();
+        await controller.dispose();
+      }
+      
+      print('Camera disabled in ProfileScreen');
+    } catch (e) {
+      print('Error while disabling camera in ProfileScreen: $e');
+    }
+}
 
   Future<DocumentSnapshot<Map<String, dynamic>>> _fetchUserData() async {
     final user = FirebaseAuth.instance.currentUser;
@@ -367,16 +399,10 @@ Widget _buildCompletedLessons(
                       mainAxisAlignment: MainAxisAlignment.start,
                       children: [
                         const CircleAvatar(
-                          backgroundColor: Colors.white,
-                          radius: 30,
-                          child: Text(
-                            "M",
-                            style: TextStyle(
-                                color: Colors.black,
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold),
-                          ),
-                        ),
+                                radius: 15,
+                                backgroundImage:
+                                    AssetImage('../assets/mozhilogo.jpg'),
+                              ),
                         Container(
                           margin: const EdgeInsets.only(left: 20),
                           child: const Text(
@@ -393,7 +419,13 @@ Widget _buildCompletedLessons(
                       ],
                     ),
                   ),
-                  sidebarElement("Home", Icons.home, false, () {}),
+                  sidebarElement("Home", Icons.home, false, () {
+                     if (Navigator.of(context).canPop()) {
+    // Navigate back to the first route (home page)
+    Navigator.of(context).popUntil((route) => route.isFirst);
+  }
+  // If we're already on the home page, do nothing
+                  }),
                   const SizedBox(height: 10),
                   sidebarElement("Rankings", Icons.bar_chart, false, () {
                     Navigator.of(context).push(
@@ -405,13 +437,13 @@ Widget _buildCompletedLessons(
                   const SizedBox(height: 10),
                   sidebarElement("Profile", Icons.person_outline, true),
                   const SizedBox(height: 10),
-                  _evaluationButton(),
+                  //_evaluationButton(),
                   const Spacer(),
                   Align(
                     alignment: Alignment.bottomLeft,
                     child: Column(
                       children: [
-                        sidebarElement("Settings", Icons.settings, false),
+                        //sidebarElement("Settings", Icons.settings, false),
                         _isSignedIn
                             ? sidebarElement(
                                 "Logout", Icons.logout, false, _sendToLogout)
