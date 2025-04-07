@@ -3,7 +3,7 @@ import './lesson_one.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ChapterScreen extends StatefulWidget {
-  final int chapterNumber;
+  final String chapterNumber;
 
   const ChapterScreen({super.key, required this.chapterNumber});
 
@@ -24,11 +24,12 @@ class _ChapterScreenState extends State<ChapterScreen> {
       for (QueryDocumentSnapshot<Map<String, dynamic>> doc
           in querySnapshot.docs) {
         lessonData = doc.data();
+        print(lessonData['title']);
         lessonsData.add(_buildLessonCard(
-            title: "Lesson ${doc.id}",
-            subtitle: lessonData['title'],
+            title: "Lesson ${doc.id[0]}",
+            subtitle: "${doc.id[0]}-Level ${doc.id[1]}",
             isUnlocked: true,
-            onTap: () => _navigateToLesson(lessonData['title'], widget.chapterNumber,false)));
+            onTap: () => _navigateToLesson(lessonData['symbol'], doc.id,false)));
       }
       return lessonsData;
     } catch (e) {
@@ -37,7 +38,8 @@ class _ChapterScreenState extends State<ChapterScreen> {
     }
   }
 
-  void _navigateToLesson(String sign,int chapterNumber, bool isLocked) {
+  void _navigateToLesson(String chapter,String lesson, bool isLocked) {
+    print("Navigating to lesson: $lesson of chapter: $chapter");
     if (isLocked) {
       // Show a dialog or snackbar indicating the chapter is locked
       ScaffoldMessenger.of(context).showSnackBar(
@@ -50,7 +52,8 @@ class _ChapterScreenState extends State<ChapterScreen> {
       return;
     }
 
-    Widget lessonScreen = LessonScreen(symbol: sign,chapterNumber: chapterNumber);
+    Widget lessonScreen = LessonScreen(chapter: chapter,lesson: lesson);
+
     // You might want to pass the lessonNumber or other relevant data to the LessonScreen
     Navigator.of(context).push(
       PageRouteBuilder(
