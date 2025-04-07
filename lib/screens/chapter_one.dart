@@ -2,20 +2,22 @@ import 'package:flutter/material.dart';
 import './lesson_one.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-class ChapterOneScreen extends StatefulWidget {
-  const ChapterOneScreen({super.key});
+class ChapterScreen extends StatefulWidget {
+  final int chapterNumber;
+
+  const ChapterScreen({super.key, required this.chapterNumber});
 
   @override
-  State<ChapterOneScreen> createState() => _ChapterOneScreenState();
+  State<ChapterScreen> createState() => _ChapterScreenState();
 }
 
-class _ChapterOneScreenState extends State<ChapterOneScreen> {
+class _ChapterScreenState extends State<ChapterScreen> {
   Future<List<Widget>> readLessons() async {
     List<Widget> lessonsData = [];
     try {
       QuerySnapshot<Map<String, dynamic>> querySnapshot =
           await FirebaseFirestore.instance
-              .collection('chapters/1/lessons')
+              .collection('chapters/${widget.chapterNumber}/lessons')
               .get();
 
       Map<String, dynamic> lessonData;
@@ -24,18 +26,18 @@ class _ChapterOneScreenState extends State<ChapterOneScreen> {
         lessonData = doc.data();
         lessonsData.add(_buildLessonCard(
             title: "Lesson ${doc.id}",
-            subtitle: lessonData['title'],
+            subtitle: lessonData['title']+"-"+doc.id,
             isUnlocked: true,
-            onTap: () => _navigateToLesson(doc.toString(), false)));
+            onTap: () => _navigateToLesson(lessonData['title'], false)));
       }
       return lessonsData;
     } catch (e) {
-      // print('Error reading lessons: $e');
+      // print('Error reading lessons for chapter ${widget.chapterNumber}: $e');
       return []; // Return an empty list in case of an error
     }
   }
 
-  void _navigateToLesson(String lessonNumber, bool isLocked) {
+  void _navigateToLesson(String sign, bool isLocked) {
     if (isLocked) {
       // Show a dialog or snackbar indicating the chapter is locked
       ScaffoldMessenger.of(context).showSnackBar(
@@ -48,33 +50,14 @@ class _ChapterOneScreenState extends State<ChapterOneScreen> {
       return;
     }
 
-    Widget lessonScreen = const LessonScreen();
-    switch (lessonNumber) {
-      case "1":
-        lessonScreen = const LessonScreen();
-        break;
-      // case "2":
-      //   //chapterScreen = const ChapterTwoScreen();
-      //   break;
-      // case 3:
-      //   //chapterScreen = const ChapterThreeScreen();
-      //   break;
-      // case 4:
-      //   //chapterScreen = const ChapterFourScreen();
-      //   break;
-      default:
-        lessonScreen = const LessonScreen();
-    }
-
-    // Use PageRouteBuilder for custom fade transition
+    Widget lessonScreen = LessonScreen(symbol: sign);
+    // You might want to pass the lessonNumber or other relevant data to the LessonScreen
     Navigator.of(context).push(
       PageRouteBuilder(
         pageBuilder: (context, animation, secondaryAnimation) => lessonScreen,
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          // Create a fade transition
           return FadeTransition(
             opacity: animation,
-            // Add a slight scale effect for smoother appearance
             child: SlideTransition(
               position: Tween<Offset>(
                 begin: const Offset(0.0, 0.05),
@@ -131,8 +114,23 @@ class _ChapterOneScreenState extends State<ChapterOneScreen> {
   Widget build(BuildContext context) {
     double width = MediaQuery.of(context).size.width;
     double progressValue = 0.3;
+    String chapterTitle;
+    String chapterSubtitle;
 
-    // FirebaseFirestore .instance
+    switch (widget.chapterNumber) {
+      case 1:
+        chapterTitle = "Chapter 1";
+        chapterSubtitle = "GETTING STARTED";
+        break;
+      case 2:
+        chapterTitle = "Chapter 2";
+        chapterSubtitle = "FINGER SPELL IT";
+        break;
+      default:
+        chapterTitle = "Chapter ${widget.chapterNumber}";
+        chapterSubtitle = "Learning Module";
+        break;
+    }
 
     return Scaffold(
       body: Row(
@@ -206,9 +204,7 @@ class _ChapterOneScreenState extends State<ChapterOneScreen> {
                     children: [
                       Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
-                        ),
+                            horizontal: 16, vertical: 8),
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(20),
@@ -226,9 +222,7 @@ class _ChapterOneScreenState extends State<ChapterOneScreen> {
                       const SizedBox(width: 10),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
-                        ),
+                            horizontal: 16, vertical: 8),
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(20),
@@ -263,105 +257,96 @@ class _ChapterOneScreenState extends State<ChapterOneScreen> {
                         Expanded(
                           flex: 3,
                           child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                const Text(
-                                  "Chapter 2",
-                                  style: TextStyle(
-                                    fontSize: 25,
-                                    fontWeight: FontWeight.normal,
-                                    color: Colors.black,
-                                  ),
-                                ),
-                                const SizedBox(height: 3),
-                                const Text(
-                                  "FINGER SPELL IT",
-                                  style: TextStyle(
-                                    fontSize: 30,
-                                    fontWeight: FontWeight.w700,
-                                    color: Colors.black,
-                                  ),
-                                ),
-                                const SizedBox(height: 3),
-                                const Text(
-                                  "Learn the universal language of numbers through gestures",
-                                  style: TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.normal,
-                                    color: Colors.black,
-                                  ),
-                                ),
-                                const Divider(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Text(
+                                chapterTitle,
+                                style: const TextStyle(
+                                  fontSize: 25,
+                                  fontWeight: FontWeight.normal,
                                   color: Colors.black,
-                                  thickness: 2,
-                                  indent: 20,
-                                  endIndent: 20,
                                 ),
-                                const SizedBox(height: 20),
-                                Align(
-                                  alignment: Alignment.topLeft,
-                                  child: Text(
-                                    "Progress: ${(progressValue * 100).toInt()}%",
-                                    style: const TextStyle(
-                                      fontSize: 15,
-                                    ),
+                              ),
+                              const SizedBox(height: 3),
+                              Text(
+                                chapterSubtitle,
+                                style: const TextStyle(
+                                  fontSize: 30,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.black,
+                                ),
+                              ),
+                              const SizedBox(height: 3),
+                              const Text(
+                                "Learn the universal language of numbers through gestures",
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.normal,
+                                  color: Colors.black,
+                                ),
+                              ),
+                              const Divider(
+                                color: Colors.black,
+                                thickness: 2,
+                                indent: 20,
+                                endIndent: 20,
+                              ),
+                              const SizedBox(height: 20),
+                              Align(
+                                alignment: Alignment.topLeft,
+                                child: Text(
+                                  "Progress: ${(progressValue * 100).toInt()}%",
+                                  style: const TextStyle(
+                                    fontSize: 15,
                                   ),
                                 ),
-                                const SizedBox(height: 5),
-                                LinearProgressIndicator(
-                                  value: progressValue,
-                                  minHeight: 10,
-                                  borderRadius: BorderRadius.circular(10),
-                                  color: Colors.green[500],
-                                  backgroundColor: Colors.grey[200],
-                                ),
-                                const SizedBox(height: 25),
-                                const SizedBox(height: 10),
-                                Expanded(
+                              ),
+                              const SizedBox(height: 5),
+                              LinearProgressIndicator(
+                                value: progressValue,
+                                minHeight: 10,
+                                borderRadius: BorderRadius.circular(10),
+                                color: Colors.green[500],
+                                backgroundColor: Colors.grey[200],
+                              ),
+                              const SizedBox(height: 25),
+                              const SizedBox(height: 10),
+                              Expanded(
                                   child: Container(
                                       width: double.infinity,
-                                      padding: const EdgeInsets.all(
-                                          10), // Equal padding on all sides
+                                      padding: const EdgeInsets.all(10),
                                       child: SingleChildScrollView(
-                                          child: FutureBuilder<List<Widget>>(
-                                        future:
-                                            readLessons(), // Call your async function here
-                                        builder: (context, snapshot) {
-                                          if (snapshot.connectionState ==
-                                              ConnectionState.waiting) {
-                                            return const Center(
-                                                child:
-                                                    CircularProgressIndicator());
-                                          } else if (snapshot.hasError) {
-                                            return Center(
-                                                child: Text(
-                                                    'Error: ${snapshot.error}'));
-                                          } else if (!snapshot.hasData ||
-                                              snapshot.data!.isEmpty) {
-                                            return const Center(
-                                                child:
-                                                    Text('No widgets found.'));
-                                          } else {
-                                            // The list of widgets has been successfully returned
-                                            List<Widget> lessonWidgets =
-                                                snapshot.data!;
-
-                                            // Directly use the returned list as children
-                                            return Wrap(
-                                              spacing:
-                                                  10, // horizontal space between cards
-                                              runSpacing:
-                                                  10, // vertical space between rows
-                                              alignment:
-                                                  WrapAlignment.spaceAround,
-                                              children: lessonWidgets,
-                                            );
-                                          }
-                                        },
+                                        child: FutureBuilder<List<Widget>>(
+                                          future: readLessons(),
+                                          builder: (context, snapshot) {
+                                            if (snapshot.connectionState ==
+                                                ConnectionState.waiting) {
+                                              return const Center(
+                                                  child:
+                                                      CircularProgressIndicator());
+                                            } else if (snapshot.hasError) {
+                                              return Center(
+                                                  child: Text(
+                                                      'Error: ${snapshot.error}'));
+                                            } else if (!snapshot.hasData ||
+                                                snapshot.data!.isEmpty) {
+                                              return const Center(
+                                                  child: Text(
+                                                      'No widgets found.'));
+                                            } else {
+                                              return Wrap(
+                                                spacing: 10,
+                                                runSpacing: 10,
+                                                alignment:
+                                                    WrapAlignment.spaceAround,
+                                                children: snapshot.data!,
+                                              );
+                                            }
+                                          },
+                                        ),
                                       ))),
-                                )
-                              ]),
-                          // const SizedBox(height: 20),
+                            ],
+                          ),
                         ),
                         const SizedBox(width: 20),
                         Container(
@@ -397,13 +382,13 @@ class _ChapterOneScreenState extends State<ChapterOneScreen> {
     required String subtitle,
     bool isUnlocked = false,
     bool isCompleted = false,
-    required Function onTap,
+    required Function() onTap,
   }) {
     return GestureDetector(
-      onTap: () => onTap(),
+      onTap: onTap,
       child: Container(
         width: 160,
-        height: 100, // Fixed height for the card
+        height: 100,
         margin: const EdgeInsets.all(5),
         decoration: BoxDecoration(
           color: isUnlocked ? Colors.white : Colors.grey[300],
@@ -426,8 +411,7 @@ class _ChapterOneScreenState extends State<ChapterOneScreen> {
         child: Padding(
           padding: const EdgeInsets.all(12.0),
           child: Column(
-            mainAxisSize: MainAxisSize
-                .min, // This prevents the Column from expanding infinitely
+            mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
@@ -446,7 +430,7 @@ class _ChapterOneScreenState extends State<ChapterOneScreen> {
                   color: isUnlocked ? Colors.black87 : Colors.grey[600],
                 ),
               ),
-              const Spacer(), // We can use Spacer here because the parent has a fixed height
+              const Spacer(),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
