@@ -8,10 +8,10 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class LessonScreen extends StatefulWidget {
-  const LessonScreen({super.key, this.symbol,this.chapterNumber});
+  const LessonScreen({super.key, this.chapter, this.lesson});
 
-  final String? symbol;
-  final int? chapterNumber;
+  final String? chapter;
+  final String? lesson;
 
   @override
   State<LessonScreen> createState() => _LessonScreenState();
@@ -31,21 +31,35 @@ class _LessonScreenState extends State<LessonScreen>
   late String _currentLetter; // Initial letter
   String _evaluationResult = ''; // Evaluation result
   int _timerSeconds = 5;
+  int _timerstore = 5;
   Timer? _countdownTimer;
   bool _isTakingPicture = false;
+  int _level=1;
 
   @override
   void initState() {
     super.initState();
     _initializeVideo();
     _initializeCamera();
-    String alphabet=widget.symbol?? 'A1';
-    _currentLetter = alphabet.toUpperCase()[0]; // Default to 'A' if symbol is null
-    int _level=int.parse(alphabet[1]);
-   // Default to 'A' if symbol is null
-    if (widget.symbol != null) {
+    String alphabet = widget.lesson ?? 'A1';
+    _currentLetter =
+        alphabet.toUpperCase()[0]; // Default to 'A' if symbol is null
+    int _level = int.parse(alphabet[1]);
+    if (_level == 1) {
+      _timerstore = 5;
+      _timerSeconds = _timerstore;
+    } else if (_level == 2) {
+      _timerstore = 3;
+      _timerSeconds = _timerstore;
+    } else if (_level == 3) {
+      _timerstore = 2;
+      _timerSeconds = _timerstore;
+    }
+
+    // Default to 'A' if symbol is null
+    if (widget.chapter != null) {
       print(
-          'Symbol received: ${widget.symbol}, currentLetter set to: $_currentLetter');
+          'Symbol received: ${widget.lesson}, currentLetter set to: $_currentLetter');
       // Perform any actions based on the symbol
     } else {
       print('No symbol received, currentLetter defaulted to: $_currentLetter');
@@ -155,7 +169,7 @@ class _LessonScreenState extends State<LessonScreen>
   }
 
   void _updateEvaluationResult(String result,
-      {int chapterNumber = 1, int lessonNumber = 1}) {
+      {String chapterNumber = '1', String lessonNumber = '1'}) {
     // Get current user ID from Firebase Auth
     final String userId = FirebaseAuth.instance.currentUser?.uid ?? '';
     print("Chapter number:$chapterNumber, Lesson number:$lessonNumber");
@@ -182,14 +196,14 @@ class _LessonScreenState extends State<LessonScreen>
         "lessonid": "chapters/$chapterNumber/lessons/$lessonNumber",
         "completed": DateTime.now().toIso8601String()
       };
-
+      
       // Update the user document by adding to the lessons_completed array
       FirebaseFirestore.instance
           .collection("user_collections")
           .doc(userId)
           .update({
         "lessons_completed": FieldValue.arrayUnion([lessonData]),
-        "xp": FieldValue.increment(1)
+        "xp": FieldValue.increment(_level)
       }).then((_) {
         print("Database updated successfully");
       }).catchError((error) {
@@ -207,7 +221,7 @@ class _LessonScreenState extends State<LessonScreen>
     if (_isTakingPicture) return;
 
     setState(() {
-      _timerSeconds = 5;
+      _timerSeconds = _timerstore;
       _isTakingPicture = true;
     });
 
@@ -268,10 +282,8 @@ class _LessonScreenState extends State<LessonScreen>
         var decodedResponse =
             jsonDecode(utf8.decode(response.bodyBytes)) as Map;
         _updateEvaluationResult(decodedResponse['predicted'].toString(),
-            chapterNumber: widget.chapterNumber ?? 1,
-            lessonNumber: widget.symbol != null
-                ? int.parse(widget.symbol![1])
-                : 1);
+            chapterNumber: widget.chapter ?? '1',
+            lessonNumber: widget.lesson ?? '1');
         print(decodedResponse);
         print("Current letter: $_currentLetter");
       } else {

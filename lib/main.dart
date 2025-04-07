@@ -130,9 +130,9 @@ class _MyHomePageState extends State<MyHomePage> {
 
         chapters.add(_buildChapterCard(
             chapterNumber: count.toString(),
-            title: doc.id,
+            title: chapterData['title'],
             description: chapterData['description'],
-            onTap: () => _navigateToChapter(int.parse(doc.id), false)));
+            onTap: () => _navigateToChapter(doc.id, false)));
         count++;
       }
     } catch (e) {
@@ -144,7 +144,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   // In main.dart, modify the _navigateToChapter method to use a PageRouteBuilder with transition:
 
-  void _navigateToChapter(int chapterNumber, bool isLocked) {
+  void _navigateToChapter(String chapterNumber, bool isLocked) {
     if (isLocked) {
       // Show a dialog or snackbar indicating the chapter is locked
       ScaffoldMessenger.of(context).showSnackBar(
