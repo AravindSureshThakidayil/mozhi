@@ -11,10 +11,10 @@ import 'package:mozhi/components/topbar.dart';
 import 'package:mozhi/main.dart'; // Add this at the top of your file
 
 class LessonScreen extends StatefulWidget {
-  const LessonScreen({super.key, this.chapter, this.lesson});
+  const LessonScreen({super.key, this.chapter, this.lesson = "A1"});
 
   final String? chapter;
-  final String? lesson;
+  final String lesson;
 
   @override
   State<LessonScreen> createState() => _LessonScreenState();
@@ -38,6 +38,7 @@ class _LessonScreenState extends State<LessonScreen>
   Timer? _countdownTimer;
   bool _isTakingPicture = false;
   int _level = 1;
+  late int score;
 
   @override
   void initState() {
@@ -48,6 +49,7 @@ class _LessonScreenState extends State<LessonScreen>
     _currentLetter =
         alphabet.toUpperCase()[0]; // Default to 'A' if symbol is null
     int _level = int.parse(alphabet[1]);
+    print("Level: $_level");
     if (_level == 1) {
       _timerstore = 5;
       _timerSeconds = _timerstore;
@@ -58,7 +60,7 @@ class _LessonScreenState extends State<LessonScreen>
       _timerstore = 2;
       _timerSeconds = _timerstore;
     }
-
+    score = _level;
     // Default to 'A' if symbol is null
     if (widget.chapter != null) {
       print(
@@ -70,11 +72,15 @@ class _LessonScreenState extends State<LessonScreen>
   }
 
   void _navigateToNextLesson() {
-    // Get the current lesson number from the symbol
+    // Get the current lesson symbol
     String currentSymbol = widget.lesson ?? 'A1';
+
+    // Extract the chapter (letter) and lesson number
     String currentLetter = currentSymbol[0];
-    int currentLessonNumber = int.parse(currentSymbol[1]);
-    int chapterNumber = int.parse(widget.lesson.toString()) ?? 1;
+    int currentLessonNumber = int.parse(currentSymbol.substring(1));
+
+    // The chapter is passed as a string, so use that directly
+    String chapterNumber = widget.chapter ?? '1';
 
     // Check if this is the last lesson in the chapter
     _isLastLessonInChapter(chapterNumber, currentLetter, currentLessonNumber)
@@ -89,7 +95,7 @@ class _LessonScreenState extends State<LessonScreen>
           ),
         );
 
-        // Short delay before navigating back
+        // Short delay before navigating back to home
         Future.delayed(const Duration(seconds: 2), () {
           Navigator.of(context).pushAndRemoveUntil(
             PageRouteBuilder(
@@ -126,7 +132,7 @@ class _LessonScreenState extends State<LessonScreen>
         Navigator.of(context).pushReplacement(
           PageRouteBuilder(
             pageBuilder: (context, animation, secondaryAnimation) =>
-                LessonScreen(chapter: nextSymbol),
+                LessonScreen(chapter: chapterNumber, lesson: nextSymbol),
             transitionsBuilder:
                 (context, animation, secondaryAnimation, child) {
               return FadeTransition(
@@ -152,21 +158,24 @@ class _LessonScreenState extends State<LessonScreen>
 
 // Add this method to check if the current lesson is the last one in the chapter
   Future<bool> _isLastLessonInChapter(
-      int chapterNumber, String letterSymbol, int lessonNumber) async {
+      String chapterNumber, String letterSymbol, int lessonNumber) async {
     try {
       // Get the chapter document from Firestore
       DocumentSnapshot chapterDoc = await FirebaseFirestore.instance
           .collection("chapters")
-          .doc(chapterNumber.toString())
+          .doc(chapterNumber)
           .get();
 
       if (!chapterDoc.exists) {
+        print("Chapter document doesn't exist: $chapterNumber");
         return false;
       }
 
       // Get the lessons data from the chapter
       Map<String, dynamic> chapterData =
           chapterDoc.data() as Map<String, dynamic>;
+
+      print("Chapter data retrieved: $chapterData");
 
       // Check if lessons field exists and get the count of lessons
       if (chapterData.containsKey('lessonCount')) {
@@ -346,7 +355,7 @@ class _LessonScreenState extends State<LessonScreen>
           .doc(userId)
           .update({
         "lessons_completed": FieldValue.arrayUnion([lessonData]),
-        "xp": FieldValue.increment(_level),
+        "xp": FieldValue.increment(score),
       }).then((_) {
         print("Database updated successfully");
       }).catchError((error) {
@@ -804,12 +813,12 @@ class _LessonScreenState extends State<LessonScreen>
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.start,
                                   children: [
-                                    const Column(
+                                    Column(
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,
                                         children: [
                                           Text(
-                                            "Lesson 1",
+                                            "Lesson ${widget.lesson[1] ?? '1'}",
                                             style: TextStyle(
                                               fontSize: 18,
                                               fontWeight: FontWeight.normal,
