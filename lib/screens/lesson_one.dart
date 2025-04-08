@@ -11,10 +11,10 @@ import 'package:mozhi/components/topbar.dart';
 import 'package:mozhi/main.dart'; // Add this at the top of your file
 
 class LessonScreen extends StatefulWidget {
-  const LessonScreen({super.key, this.chapter, this.lesson});
+  const LessonScreen({super.key, this.chapter, this.lesson="A1"});
 
   final String? chapter;
-  final String? lesson;
+  final String lesson;
 
   @override
   State<LessonScreen> createState() => _LessonScreenState();
@@ -38,6 +38,7 @@ class _LessonScreenState extends State<LessonScreen>
   Timer? _countdownTimer;
   bool _isTakingPicture = false;
   int _level = 1;
+  late int score;
 
   @override
   void initState() {
@@ -48,9 +49,11 @@ class _LessonScreenState extends State<LessonScreen>
     _currentLetter =
         alphabet.toUpperCase()[0]; // Default to 'A' if symbol is null
     int _level = int.parse(alphabet[1]);
+    print("Level: $_level");
     if (_level == 1) {
       _timerstore = 5;
       _timerSeconds = _timerstore;
+      
     } else if (_level == 2) {
       _timerstore = 3;
       _timerSeconds = _timerstore;
@@ -58,7 +61,7 @@ class _LessonScreenState extends State<LessonScreen>
       _timerstore = 2;
       _timerSeconds = _timerstore;
     }
-
+    score=_level;
     // Default to 'A' if symbol is null
     if (widget.chapter != null) {
       print(
@@ -351,7 +354,7 @@ class _LessonScreenState extends State<LessonScreen>
           .doc(userId)
           .update({
         "lessons_completed": FieldValue.arrayUnion([lessonData]),
-        "xp": FieldValue.increment(_level),
+        "xp": FieldValue.increment(score),
       }).then((_) {
         print("Database updated successfully");
       }).catchError((error) {
@@ -809,12 +812,12 @@ class _LessonScreenState extends State<LessonScreen>
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.start,
                                   children: [
-                                    const Column(
+                                     Column(
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,
                                         children: [
                                           Text(
-                                            "Lesson 1",
+                                             "Lesson ${widget.lesson[1] ?? '1'}",
                                             style: TextStyle(
                                               fontSize: 18,
                                               fontWeight: FontWeight.normal,
