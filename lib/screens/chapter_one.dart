@@ -5,8 +5,9 @@ import 'package:mozhi/components/sidebar.dart';
 import 'package:mozhi/components/topbar.dart';
 class ChapterScreen extends StatefulWidget {
   final String chapterNumber;
+  final String? chapterTitle;
 
-  const ChapterScreen({super.key, required this.chapterNumber});
+  const ChapterScreen({super.key, required this.chapterNumber, this.chapterTitle});
 
   @override
   State<ChapterScreen> createState() => _ChapterScreenState();
@@ -132,7 +133,7 @@ class _ChapterScreenState extends State<ChapterScreen> {
         break;
       default:
         chapterTitle = "Chapter ${widget.chapterNumber}";
-        chapterSubtitle = "Learning Module";
+        chapterSubtitle = "Learning Module of ${widget.chapterNumber}";
         break;
     }
 
@@ -189,8 +190,8 @@ class _ChapterScreenState extends State<ChapterScreen> {
                                 ),
                               ),
                               const SizedBox(height: 3),
-                              const Text(
-                                "Learn the universal language of numbers through gestures",
+                               Text(
+                                "${widget.chapterTitle}",
                                 style: TextStyle(
                                   fontSize: 20,
                                   fontWeight: FontWeight.normal,

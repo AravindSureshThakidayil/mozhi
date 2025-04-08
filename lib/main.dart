@@ -91,9 +91,9 @@ class _MyHomePageState extends State<MyHomePage> {
 
         chapters.add(ChapterCard(
           chapterNumber: count.toString(),
-          title: doc.id,
+          title: chapterData['title'],
           description: chapterData['description'],
-          onTap: () => _navigateToChapter(doc.id, false),
+          onTap: () => _navigateToChapter(doc.id, false,chapterData['title']),
         ));
         count++;
       }
@@ -104,7 +104,7 @@ class _MyHomePageState extends State<MyHomePage> {
     return chapters;
   }
 
-  void _navigateToChapter(String chapterNumber, bool isLocked) {
+  void _navigateToChapter(String chapterNumber, bool isLocked,String? title) {
     if (isLocked) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -116,7 +116,7 @@ class _MyHomePageState extends State<MyHomePage> {
       return;
     }
 
-    Widget chapterScreen = ChapterScreen(chapterNumber: chapterNumber);
+    Widget chapterScreen = ChapterScreen(chapterNumber: chapterNumber,chapterTitle: title,);
     Navigator.of(context).push(
       PageRouteBuilder(
         pageBuilder: (context, animation, secondaryAnimation) => chapterScreen,
