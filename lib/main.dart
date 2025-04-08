@@ -50,30 +50,31 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Future<double> getUserProgress() async {
-  try {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
-      // If user is not logged in, return 0%
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        // If user is not logged in, return 0%
+        return 0.0;
+      }
+
+      final userData = await FirebaseFirestore.instance
+          .collection('user_collections')
+          .doc(user.uid)
+          .get();
+
+      if (!userData.exists || userData.data() == null) {
+        return 0.0;
+      }
+
+      final completedLessonsData =
+          userData.data()?['lessons_completed'] as List<dynamic>? ?? [];
+      // Calculate progress: (completed lessons / 105) * 100
+      return (completedLessonsData.length / 105) * 100;
+    } catch (e) {
+      print('Error fetching user progress: $e');
       return 0.0;
     }
-    
-    final userData = await FirebaseFirestore.instance
-        .collection('user_collections')
-        .doc(user.uid)
-        .get();
-        
-    if (!userData.exists || userData.data() == null) {
-      return 0.0;
-    }
-    
-    final completedLessonsData = userData.data()?['lessons_completed'] as List<dynamic>? ?? [];
-    // Calculate progress: (completed lessons / 105) * 100
-    return (completedLessonsData.length / 105) * 100;
-  } catch (e) {
-    print('Error fetching user progress: $e');
-    return 0.0;
   }
-}
 
   Future<List<Widget>> readChapters() async {
     int count = 0;
@@ -81,7 +82,7 @@ class _MyHomePageState extends State<MyHomePage> {
     try {
       QuerySnapshot<Map<String, dynamic>> querySnapshot =
           await FirebaseFirestore.instance.collection("chapters").get();
-    
+
       Map<String, dynamic> chapterData;
       for (QueryDocumentSnapshot<Map<String, dynamic>> doc
           in querySnapshot.docs) {
@@ -92,7 +93,7 @@ class _MyHomePageState extends State<MyHomePage> {
           chapterNumber: count.toString(),
           title: doc.id,
           description: chapterData['description'],
-          onTap: () => _navigateToChapter(int.parse(doc.id), false),
+          onTap: () => _navigateToChapter(doc.id, false),
         ));
         count++;
       }
@@ -103,7 +104,7 @@ class _MyHomePageState extends State<MyHomePage> {
     return chapters;
   }
 
-  void _navigateToChapter(int chapterNumber, bool isLocked) {
+  void _navigateToChapter(String chapterNumber, bool isLocked) {
     if (isLocked) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -161,50 +162,54 @@ class _MyHomePageState extends State<MyHomePage> {
                   children: [
                     // Top Bar
                     const TopBar(),
-                    
+
                     //progress bar for the whole learning
-FutureBuilder<double>(
-  future: getUserProgress(),
-  builder: (context, snapshot) {
-    double progressPercentage = 0.0;
-    String completedLessons = "0";
-    
-    if (snapshot.connectionState == ConnectionState.waiting) {
-      // Show loading state
-      progressPercentage = 0.0;
-    } else if (snapshot.hasError) {
-      // Handle error state
-      print("Error loading progress: ${snapshot.error}");
-      progressPercentage = 0.0;
-    } else if (snapshot.hasData) {
-      // Show actual progress
-      progressPercentage = snapshot.data!;
-      completedLessons = (progressPercentage * 105 / 100).round().toString();
-    }
-    
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Progress: ${progressPercentage.toStringAsFixed(1)}%'),
-        const SizedBox(height: 8),
-        SizedBox(
-          width: width - 480,
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: LinearProgressIndicator(
-              value: progressPercentage / 100,
-              backgroundColor: Colors.grey.shade200,
-              valueColor: const AlwaysStoppedAnimation<Color>(Colors.green),
-              minHeight: 10,
-            ),
-          ),
-        ),
-        const SizedBox(height: 4),
-        
-      ],
-    );
-  }
-),
+                    FutureBuilder<double>(
+                        future: getUserProgress(),
+                        builder: (context, snapshot) {
+                          double progressPercentage = 0.0;
+                          String completedLessons = "0";
+
+                          if (snapshot.connectionState ==
+                              ConnectionState.waiting) {
+                            // Show loading state
+                            progressPercentage = 0.0;
+                          } else if (snapshot.hasError) {
+                            // Handle error state
+                            print("Error loading progress: ${snapshot.error}");
+                            progressPercentage = 0.0;
+                          } else if (snapshot.hasData) {
+                            // Show actual progress
+                            progressPercentage = snapshot.data!;
+                            completedLessons = (progressPercentage * 105 / 100)
+                                .round()
+                                .toString();
+                          }
+
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                  'Progress: ${progressPercentage.toStringAsFixed(1)}%'),
+                              const SizedBox(height: 8),
+                              SizedBox(
+                                width: width - 480,
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(10),
+                                  child: LinearProgressIndicator(
+                                    value: progressPercentage / 100,
+                                    backgroundColor: Colors.grey.shade200,
+                                    valueColor:
+                                        const AlwaysStoppedAnimation<Color>(
+                                            Colors.green),
+                                    minHeight: 10,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                            ],
+                          );
+                        }),
 
                     const SizedBox(height: 20),
                     Expanded(

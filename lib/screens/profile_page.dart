@@ -24,36 +24,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void initState() {
     super.initState();
     _userDataFuture = _fetchUserData();
-      _disableCamera();
+    _disableCamera();
   }
 
-  
-
 // Method to disable camera
-void _disableCamera() async {
-  try {
-    // Get list of cameras
-    final cameras = await availableCameras();
-    
-    // For each camera, create a controller and dispose it immediately
-    // This ensures any active camera instances are properly shut down
-    for (var camera in cameras) {
+  void _disableCamera() async {
+    try {
+      // Get list of cameras
+      final cameras = await availableCameras();
+
+      // For each camera, create a controller and dispose it immediately
+      // This ensures any active camera instances are properly shut down
+      for (var camera in cameras) {
         final controller = CameraController(
           camera,
           ResolutionPreset.low,
           enableAudio: false,
         );
-        
+
         // Initialize and then immediately dispose
         await controller.initialize();
         await controller.dispose();
       }
-      
+
       print('Camera disabled in ProfileScreen');
     } catch (e) {
       print('Error while disabling camera in ProfileScreen: $e');
     }
-}
+  }
 
   Future<DocumentSnapshot<Map<String, dynamic>>> _fetchUserData() async {
     final user = FirebaseAuth.instance.currentUser;
@@ -270,11 +268,7 @@ void _disableCamera() async {
     );
   }
 
-<<<<<<< HEAD
   Widget _buildCompletedLessons(
-=======
-Widget _buildCompletedLessons(
->>>>>>> 68d3daf443e2a1c199fc3c880fb1408b92843858
       AsyncSnapshot<DocumentSnapshot<Map<String, dynamic>>> snapshot) {
     final userData = snapshot.data!.data();
     final completedLessonsData =
@@ -293,41 +287,43 @@ Widget _buildCompletedLessons(
       };
     }).toList();
 
-<<<<<<< HEAD
+    // For demonstration, let's map lesson IDs to names. In a real app,
+    // you would likely fetch lesson details based on the lesson ID.
+    final Map<String, String> lessonIdToName = {
+      'chapters/1/lessons/1': 'Lesson 1: Introduction to Basics',
+      // Add more mappings as needed
+    };
+    final Map<String, String> lessonIdToChapter = {
+      'chapters/1/lessons/1': 'Chapter 1: Getting Started',
+      // Add more mappings as needed
+    };
+
     // Group completed lessons by chapter
     final Map<String, List<Map<String, dynamic>>> lessonsByChapter = {};
     for (var lesson in completedLessons) {
-      final lessonId = lesson['lessonId'];
-      // Extract chapter number from reference path
-      String chapterNumber = 'Unknown';
-      final RegExp regExp = RegExp(r'chapters/(\d+)/');
-      final match = regExp.firstMatch(lessonId.toString());
-      if (match != null && match.groupCount >= 1) {
-        chapterNumber = match.group(1)!;
+      final lessonId = lesson['lessonid'];
+      final chapter = lessonIdToChapter[lessonId] ?? 'Unknown Chapter';
+      if (!lessonsByChapter.containsKey(chapter)) {
+        lessonsByChapter[chapter] = [];
       }
-
-      final chapterName = 'Chapter $chapterNumber';
-      if (!lessonsByChapter.containsKey(chapterName)) {
-        lessonsByChapter[chapterName] = [];
-      }
-      lessonsByChapter[chapterName]!.add(lesson);
+      lessonsByChapter[chapter]!.add(lesson);
     }
-=======
-    return FutureBuilder<Map<String, String>>(
-      future: fetchLessonChapterMappings(),
-      builder: (context, chapterMappingSnapshot) {
-        if (chapterMappingSnapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
 
-        if (chapterMappingSnapshot.hasError) {
-          return Text('Error loading chapter data: ${chapterMappingSnapshot.error}');
-        }
->>>>>>> 68d3daf443e2a1c199fc3c880fb1408b92843858
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Completed Lessons',
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 8),
+        if (completedLessons.isEmpty)
+          const Text('No lessons completed yet.')
+        else
+          ...lessonsByChapter.entries.map((entry) {
+            final chapterName = entry.key;
+            final lessonsInChapter = entry.value;
 
-        final lessonIdToChapter = chapterMappingSnapshot.data ?? {};
-
-<<<<<<< HEAD
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -345,112 +341,38 @@ Widget _buildCompletedLessons(
                       const Divider(height: 1),
                   itemBuilder: (context, index) {
                     final lesson = lessonsInChapter[index];
-                    final lessonId = lesson['lessonId'].toString();
+                    final lessonName = lessonIdToName[lesson['lessonid']] ??
+                        lesson['lessonid'];
+                    final DateTime? completedAt = lesson['completedAt'];
+                    String formattedDate = 'N/A';
+                    String formattedTime = 'N/A';
+                    if (completedAt != null) {
+                      formattedDate =
+                          DateFormat('dd-MM-yyyy').format(completedAt);
+                      formattedTime = DateFormat('HH:mm').format(completedAt);
+                    }
 
-                    return FutureBuilder<DocumentSnapshot>(
-                      future: FirebaseFirestore.instance.doc(lessonId).get(),
-                      builder: (context, lessonSnapshot) {
-                        String lessonName = lessonId;
-
-                        if (lessonSnapshot.hasData &&
-                            lessonSnapshot.data != null) {
-                          final lessonData = lessonSnapshot.data!.data()
-                              as Map<String, dynamic>?;
-                          lessonName = lessonData?['title'] ?? "lessonId";
-                        }
-
-                        final DateTime? completedAt = lesson['completedAt'];
-                        String formattedDate = 'N/A';
-                        String formattedTime = 'NB3/A';
-                        if (completedAt != null) {
-                          formattedDate =
-                              DateFormat('dd-MM-yyyy').format(completedAt);
-                          formattedTime =
-                              DateFormat('HH:mm').format(completedAt);
-=======
-        // Group completed lessons by chapter
-        final Map<String, List<Map<String, dynamic>>> lessonsByChapter = {};
-        for (var lesson in completedLessons) {
-          final lessonId = lesson['lessonid'];
-          final chapter = lessonIdToChapter[lessonId] ?? 'Unknown Chapter';
-          if (!lessonsByChapter.containsKey(chapter)) {
-            lessonsByChapter[chapter] = [];
-          }
-          lessonsByChapter[chapter]!.add(lesson);
-        }
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Completed Lessons',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            if (completedLessons.isEmpty)
-              const Text('No lessons completed yet.')
-            else
-              ...lessonsByChapter.entries.map((entry) {
-                final chapterName = entry.key;
-                final lessonsInChapter = entry.value;
-
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      chapterName,
-                      style: const TextStyle(
-                          fontSize: 18, fontWeight: FontWeight.w600),
-                    ),
-                    const Divider(height: 8),
-                    ListView.separated(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: lessonsInChapter.length,
-                      separatorBuilder: (context, index) =>
-                          const Divider(height: 1),
-                      itemBuilder: (context, index) {
-                        final lesson = lessonsInChapter[index];
-                        final DateTime? completedAt = lesson['completedAt'];
-                        String formattedDate = 'N/A';
-                        String formattedTime = 'N/A';
-                        if (completedAt != null) {
-                          formattedDate = DateFormat('dd-MM-yyyy').format(completedAt);
-                          formattedTime = DateFormat('HH:mm').format(completedAt);
->>>>>>> 68d3daf443e2a1c199fc3c880fb1408b92843858
-                        }
-
-                        return ListTile(
-                          contentPadding: EdgeInsets.zero,
-                          leading: const Icon(Icons.check_circle_outline,
-                              color: Colors.green),
-<<<<<<< HEAD
-                          title: Text(lessonName),
-=======
-                          title: Text('Lesson ${index + 1}'),
->>>>>>> 68d3daf443e2a1c199fc3c880fb1408b92843858
-                          subtitle: Text(
-                            'Completed on $formattedDate at $formattedTime',
-                            style: const TextStyle(color: Colors.grey),
-                          ),
-                          onTap: () {
-                            print(
-<<<<<<< HEAD
-                                'Tapped on completed lesson: $lessonName in $chapterName');
-=======
-                                'Tapped on completed lesson: ${index + 1} in $chapterName');
->>>>>>> 68d3daf443e2a1c199fc3c880fb1408b92843858
-                          },
-                        );
+                    return ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.check_circle_outline,
+                          color: Colors.green),
+                      title: Text(lessonName),
+                      subtitle: Text(
+                        'Completed on $formattedDate at $formattedTime',
+                        style: const TextStyle(color: Colors.grey),
+                      ),
+                      onTap: () {
+                        print(
+                            'Tapped on completed lesson: $lessonName in $chapterName');
                       },
-                    ),
-                    const SizedBox(height: 10),
-                  ],
-                );
-              }).toList(),
-          ],
-        );
-      },
+                    );
+                  },
+                ),
+                const SizedBox(height: 10),
+              ],
+            );
+          }).toList(),
+      ],
     );
   }
 
@@ -475,10 +397,10 @@ Widget _buildCompletedLessons(
                       mainAxisAlignment: MainAxisAlignment.start,
                       children: [
                         const CircleAvatar(
-                                radius: 15,
-                                backgroundImage:
-                                    AssetImage('../assets/mozhilogo.jpg'),
-                              ),
+                          radius: 15,
+                          backgroundImage:
+                              AssetImage('../assets/mozhilogo.jpg'),
+                        ),
                         Container(
                           margin: const EdgeInsets.only(left: 20),
                           child: const Text(
@@ -496,11 +418,11 @@ Widget _buildCompletedLessons(
                     ),
                   ),
                   sidebarElement("Home", Icons.home, false, () {
-                     if (Navigator.of(context).canPop()) {
-    // Navigate back to the first route (home page)
-    Navigator.of(context).popUntil((route) => route.isFirst);
-  }
-  // If we're already on the home page, do nothing
+                    if (Navigator.of(context).canPop()) {
+                      // Navigate back to the first route (home page)
+                      Navigator.of(context).popUntil((route) => route.isFirst);
+                    }
+                    // If we're already on the home page, do nothing
                   }),
                   const SizedBox(height: 10),
                   sidebarElement("Rankings", Icons.bar_chart, false, () {
