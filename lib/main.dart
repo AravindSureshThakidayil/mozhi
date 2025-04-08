@@ -2,21 +2,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mozhi/evaluation/alphabet_test.dart';
+import 'package:flutter/material.dart';
 import 'package:mozhi/methods/initchapters.dart';
 import 'firebase_options.dart';
-import 'package:flutter/material.dart';
-import 'package:mozhi/authentication/screens/create_account.dart';
-import 'package:mozhi/screens/rank_Screen.dart';
-import 'package:mozhi/authentication/screens/login.dart';
-import 'package:mozhi/components/camera.dart';
-import './authentication/screens/signout_screen.dart';
-import 'dart:async';
-import 'package:flutter/material.dart';
-import 'package:video_player/video_player.dart';
-import 'components/video.dart';
+import 'package:mozhi/components/sidebar.dart';
+import 'package:mozhi/components/topbar.dart';
+import 'package:mozhi/components/chapter_card.dart';
 import './screens/chapter_one.dart';
-import './screens/profile_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -51,76 +43,45 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  bool _isSignedIn = true;
-
   @override
   void initState() {
-    isSignedIn();
-    super.initState(); // Initialize with false initially
+    super.initState();
     initializeChapterCount();
   }
 
-  Future<void> isSignedIn() async {
-    FirebaseAuth.instance.authStateChanges().listen((User? user) {
-      if (!mounted) return;
-      setState(() {
-        // print(user!.uid);
-        if (user != null) {
-          _isSignedIn = true;
-        } else {
-          _isSignedIn = false;
-        }
-      });
-    });
-  }
+  Future<double> getUserProgress() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        // If user is not logged in, return 0%
+        return 0.0;
+      }
 
-  Widget sidebarElement(String title, IconData icon, bool isActive,
-      [Function? method]) {
-    return GestureDetector(
-        onTap: () {
-          if (method != null) {
-            method();
-          }
-        },
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(
-            color: isActive ? const Color(0xFF3B3B3B) : Colors.transparent,
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Row(
-            children: [
-              Icon(icon, color: Colors.white),
-              const SizedBox(width: 12),
-              Text(
-                title,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                ),
-              ),
-            ],
-          ),
-        ));
-  }
+      final userData = await FirebaseFirestore.instance
+          .collection('user_collections')
+          .doc(user.uid)
+          .get();
 
-  void _sendToLogin() {
-    Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => const LoginScreen()));
-  }
+      if (!userData.exists || userData.data() == null) {
+        return 0.0;
+      }
 
-  void _sendToLogout() {
-    Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => const SignoutScreen()));
+      final completedLessonsData =
+          userData.data()?['lessons_completed'] as List<dynamic>? ?? [];
+      // Calculate progress: (completed lessons / 105) * 100
+      return (completedLessonsData.length / 105) * 100;
+    } catch (e) {
+      print('Error fetching user progress: $e');
+      return 0.0;
+    }
   }
 
   Future<List<Widget>> readChapters() async {
-    int count=0;
+    int count = 0;
     List<Widget> chapters = [];
     try {
       QuerySnapshot<Map<String, dynamic>> querySnapshot =
           await FirebaseFirestore.instance.collection("chapters").get();
-    
 
       Map<String, dynamic> chapterData;
       for (QueryDocumentSnapshot<Map<String, dynamic>> doc
@@ -128,11 +89,12 @@ class _MyHomePageState extends State<MyHomePage> {
         chapterData = doc.data();
         print(doc.data());
 
-        chapters.add(_buildChapterCard(
-            chapterNumber: count.toString(),
-            title: chapterData['title'],
-            description: chapterData['description'],
-            onTap: () => _navigateToChapter(doc.id, false)));
+        chapters.add(ChapterCard(
+          chapterNumber: count.toString(),
+          title: doc.id,
+          description: chapterData['description'],
+          onTap: () => _navigateToChapter(doc.id, false),
+        ));
         count++;
       }
     } catch (e) {
@@ -142,11 +104,8 @@ class _MyHomePageState extends State<MyHomePage> {
     return chapters;
   }
 
-  // In main.dart, modify the _navigateToChapter method to use a PageRouteBuilder with transition:
-
   void _navigateToChapter(String chapterNumber, bool isLocked) {
     if (isLocked) {
-      // Show a dialog or snackbar indicating the chapter is locked
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content:
@@ -158,15 +117,12 @@ class _MyHomePageState extends State<MyHomePage> {
     }
 
     Widget chapterScreen = ChapterScreen(chapterNumber: chapterNumber);
-    // Use PageRouteBuilder for custom fade transition
     Navigator.of(context).push(
       PageRouteBuilder(
         pageBuilder: (context, animation, secondaryAnimation) => chapterScreen,
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          // Create a fade transition
           return FadeTransition(
             opacity: animation,
-            // Add a slight scale effect for smoother appearance
             child: SlideTransition(
               position: Tween<Offset>(
                 begin: const Offset(0.0, 0.05),
@@ -186,84 +142,12 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    // isSignedIn();
     double width = MediaQuery.of(context).size.width;
-    const Color background1 = Color.fromRGBO(0x3B, 0x3B, 0x3B, 0.9);
 
     return Scaffold(
-        // appBar: AppBar(
-        //   title: Text('Mozhi'),
-        //   backgroundColor: Colors.black,
-        // ),
         body: Center(
             child: Row(children: [
-      Container(
-          // left sidebar
-          padding: const EdgeInsets.all(10),
-          color: Colors.black,
-          width: 200,
-          height: MediaQuery.of(context).size.height,
-          child: Column(children: [
-            Container(
-                margin: const EdgeInsets.only(bottom: 100, top: 20),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  children: [
-                    const CircleAvatar(
-                      backgroundColor: Colors.white,
-                    ),
-                    Container(
-                        margin: const EdgeInsets.only(left: 20),
-                        child: const Text(
-                          "MOZHI",
-                          textScaler: TextScaler.linear(3),
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontFamily: "Squada One",
-                            fontWeight: FontWeight.w600,
-                            fontSize: 12,
-                          ),
-                        ))
-                  ],
-                )),
-            sidebarElement("Home", Icons.home, true),
-            const SizedBox(height: 10),
-            sidebarElement("Rankings", Icons.bar_chart, false, () {
-              Navigator.of(context)
-                  .push(
-                MaterialPageRoute(
-                  builder: (context) => RankScreen(),
-                ),
-              )
-                  .then((_) {
-                // Returning to start when coming back from RankScreen
-                Navigator.of(context).popUntil((route) => route.isFirst);
-              });
-            }),
-            const SizedBox(height: 10),
-           sidebarElement("Profile", Icons.person_outline, false, () {
-  Navigator.of(context).push(
-    MaterialPageRoute(
-      builder: (context) => const ProfileScreen(),
-    ),
-  );
-}),
-            const SizedBox(height: 10),
-            _testCamera(context: context),
-
-            const Spacer(),
-            // sidebarElement("Settings", Icons.settings, false),
-            Align(
-                alignment: Alignment.bottomLeft,
-                child: Column(children: [
-                  sidebarElement("Settings", Icons.settings, false),
-                  _isSignedIn
-                      ? sidebarElement(
-                          "Logout", Icons.logout, false, _sendToLogout)
-                      : sidebarElement(
-                          "Login", Icons.login, false, _sendToLogin)
-                ]))
-          ])),
+      const Sidebar(),
       Container(
           width: width - 200,
           color: Colors.black,
@@ -276,81 +160,56 @@ class _MyHomePageState extends State<MyHomePage> {
               child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Top Bar with steak and profile
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: Colors.grey.shade300),
-                          ),
-                          child: const Row(
-                            children: [
-                              Icon(Icons.local_fire_department,
-                                  color: Colors.orange),
-                              SizedBox(width: 5),
-                              Text('365'),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: Colors.grey.shade300),
-                          ),
-                          child: const Row(
-                            children: [
-                              CircleAvatar(
-                                radius: 15,
-                                backgroundImage:
-                                    AssetImage('../assets/stephen.jpg'),
-                              ),
-                              SizedBox(width: 8),
-                              Text('Stephen'),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
+                    // Top Bar
+                    const TopBar(),
 
-                    const SizedBox(height: 10),
-                    const Divider(
-                      // Add this
-                      color: Color.fromARGB(255, 163, 163, 163),
-                      thickness: 1,
-                    ),
-                    const SizedBox(height: 10),
-                    //until this, everything should be in all the pages
-                    //---------------------------------------------------------------------------------------------------------------------------
                     //progress bar for the whole learning
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('Progress: 18%'),
-                        const SizedBox(height: 8),
-                        SizedBox(
-                          width: width - 480,
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(10),
-                            child: LinearProgressIndicator(
-                              value: 0.18,
-                              backgroundColor: Colors.grey.shade200,
-                              valueColor: const AlwaysStoppedAnimation<Color>(
-                                  Colors.green),
-                              minHeight: 10,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                    FutureBuilder<double>(
+                        future: getUserProgress(),
+                        builder: (context, snapshot) {
+                          double progressPercentage = 0.0;
+                          String completedLessons = "0";
+
+                          if (snapshot.connectionState ==
+                              ConnectionState.waiting) {
+                            // Show loading state
+                            progressPercentage = 0.0;
+                          } else if (snapshot.hasError) {
+                            // Handle error state
+                            print("Error loading progress: ${snapshot.error}");
+                            progressPercentage = 0.0;
+                          } else if (snapshot.hasData) {
+                            // Show actual progress
+                            progressPercentage = snapshot.data!;
+                            completedLessons = (progressPercentage * 105 / 100)
+                                .round()
+                                .toString();
+                          }
+
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                  'Progress: ${progressPercentage.toStringAsFixed(1)}%'),
+                              const SizedBox(height: 8),
+                              SizedBox(
+                                width: width - 480,
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(10),
+                                  child: LinearProgressIndicator(
+                                    value: progressPercentage / 100,
+                                    backgroundColor: Colors.grey.shade200,
+                                    valueColor:
+                                        const AlwaysStoppedAnimation<Color>(
+                                            Colors.green),
+                                    minHeight: 10,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                            ],
+                          );
+                        }),
 
                     const SizedBox(height: 20),
                     Expanded(
@@ -377,15 +236,11 @@ class _MyHomePageState extends State<MyHomePage> {
                                         return const Center(
                                             child: Text('No widgets found.'));
                                       } else {
-                                        // The list of widgets has been successfully returned
                                         List<Widget> chapterWidgets =
                                             snapshot.data!;
                                         return Wrap(
-                                          // Use Wrap instead of Column
-                                          spacing:
-                                              10.0, // Adjust spacing as needed
-                                          runSpacing:
-                                              10.0, // Adjust run spacing as needed
+                                          spacing: 10.0,
+                                          runSpacing: 10.0,
                                           children: chapterWidgets,
                                         );
                                       }
@@ -416,88 +271,4 @@ class _MyHomePageState extends State<MyHomePage> {
                   ])))
     ])));
   }
-}
-
-Widget _buildChapterCard({
-  required String chapterNumber,
-  required String title,
-  required String description,
-  bool isCompleted = false,
-  bool isActive = false,
-  bool isLocked = false,
-  required Function onTap,
-}) {
-  return GestureDetector(
-    onTap: () => onTap(),
-    child: Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        border: Border.all(
-            color: isCompleted
-                ? const Color.fromARGB(255, 133, 193, 135)
-                : Colors.grey.shade300),
-        borderRadius: BorderRadius.circular(10),
-        boxShadow: [
-          BoxShadow(
-            color: isActive
-                ? const Color.fromARGB(51, 0, 0, 0)
-                : Colors.white, // 20% opacity (51 out of 255)
-            blurRadius: 8,
-            offset: const Offset(2, 4), // Position of the shadow (x, y)
-          ),
-        ],
-        color: Colors.white,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Chapter $chapterNumber',
-              style: const TextStyle(
-                  fontSize: 16, color: Color.fromARGB(255, 0, 0, 0))),
-          const SizedBox(height: 8),
-          Text(title,
-              style:
-                  const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8),
-          Text(description, style: const TextStyle(color: Colors.grey)),
-          const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              if (isCompleted)
-                const Row(
-                  children: [
-                    Text('Completed', style: TextStyle(color: Colors.green)),
-                    SizedBox(width: 8),
-                    Icon(Icons.check_circle, color: Colors.green),
-                  ],
-                )
-              else if (isActive)
-                const Text('Start Now →',
-                    style: TextStyle(fontWeight: FontWeight.bold))
-              else if (isLocked)
-                const Text('Start Now →', style: TextStyle(color: Colors.grey)),
-            ],
-          ),
-        ],
-      ),
-    ),
-  );
-}
-
-Widget _testCamera({context}) {
-  return Container(
-    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-    decoration: BoxDecoration(
-      color: Colors.transparent,
-      borderRadius: BorderRadius.circular(10),
-    ),
-    child: ElevatedButton(
-      onPressed: () {
-        Navigator.push(context,
-            MaterialPageRoute(builder: (context) => AlphabetTestScreen()));
-      },
-      child: const Text('Evaluation'),
-    ),
-  );
 }

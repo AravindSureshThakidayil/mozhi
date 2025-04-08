@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import './lesson_one.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-
+import 'package:mozhi/components/sidebar.dart';
+import 'package:mozhi/components/topbar.dart';
 class ChapterScreen extends StatefulWidget {
   final String chapterNumber;
 
@@ -138,56 +139,7 @@ class _ChapterScreenState extends State<ChapterScreen> {
     return Scaffold(
       body: Row(
         children: [
-          Container(
-            // left sidebar
-            padding: const EdgeInsets.all(10),
-            color: Colors.black,
-            width: 200,
-            height: MediaQuery.of(context).size.height,
-            child: Column(
-              children: [
-                Container(
-                  margin: const EdgeInsets.only(bottom: 100, top: 20),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    children: [
-                      const CircleAvatar(
-                        backgroundColor: Colors.white,
-                      ),
-                      Container(
-                        margin: const EdgeInsets.only(left: 20),
-                        child: const Text(
-                          "MOZHI",
-                          textScaler: TextScaler.linear(3),
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontFamily: "Squada One",
-                            fontWeight: FontWeight.w600,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                sidebarElement("Home", Icons.home, true, _goBack),
-                const SizedBox(height: 10),
-                sidebarElement("Rankings", Icons.bar_chart, false),
-                const SizedBox(height: 10),
-                sidebarElement("Profile", Icons.person_outline, false),
-                const Spacer(),
-                Align(
-                  alignment: Alignment.bottomLeft,
-                  child: Column(
-                    children: [
-                      sidebarElement("Settings", Icons.settings, false),
-                      sidebarElement("Logout", Icons.logout, false),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
+          const Sidebar(),
           Container(
             width: width - 200,
             color: Colors.black,
@@ -202,50 +154,7 @@ class _ChapterScreenState extends State<ChapterScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Top Bar with streak and profile - Exact match from main.dart
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: Colors.grey.shade300),
-                        ),
-                        child: const Row(
-                          children: [
-                            Icon(Icons.local_fire_department,
-                                color: Colors.orange),
-                            SizedBox(width: 5),
-                            Text('365'),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: Colors.grey.shade300),
-                        ),
-                        child: const Row(
-                          children: [
-                            CircleAvatar(
-                              radius: 15,
-                              backgroundImage:
-                                  AssetImage('../assets/stephen.jpg'),
-                            ),
-                            SizedBox(width: 8),
-                            Text('Stephen'),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-
+                  const TopBar(),
                   const SizedBox(height: 10),
                   const Divider(
                     color: Color.fromARGB(255, 163, 163, 163),
@@ -295,24 +204,7 @@ class _ChapterScreenState extends State<ChapterScreen> {
                                 endIndent: 20,
                               ),
                               const SizedBox(height: 20),
-                              Align(
-                                alignment: Alignment.topLeft,
-                                child: Text(
-                                  "Progress: ${(progressValue * 100).toInt()}%",
-                                  style: const TextStyle(
-                                    fontSize: 15,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 5),
-                              LinearProgressIndicator(
-                                value: progressValue,
-                                minHeight: 10,
-                                borderRadius: BorderRadius.circular(10),
-                                color: Colors.green[500],
-                                backgroundColor: Colors.grey[200],
-                              ),
-                              const SizedBox(height: 25),
+                              
                               const SizedBox(height: 10),
                               Expanded(
                                   child: Container(

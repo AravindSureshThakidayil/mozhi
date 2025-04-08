@@ -6,6 +6,9 @@ import 'package:camera/camera.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:mozhi/components/sidebar.dart';
+import 'package:mozhi/components/topbar.dart';
+import 'package:mozhi/main.dart'; // Add this at the top of your file
 
 class LessonScreen extends StatefulWidget {
   const LessonScreen({super.key, this.chapter, this.lesson});
@@ -66,6 +69,134 @@ class _LessonScreenState extends State<LessonScreen>
     }
   }
 
+  void _navigateToNextLesson() {
+  // Get the current lesson symbol
+  String currentSymbol = widget.lesson ?? 'A1';
+  
+  // Extract the chapter (letter) and lesson number
+  String currentLetter = currentSymbol[0];
+  int currentLessonNumber = int.parse(currentSymbol.substring(1));
+  
+  // The chapter is passed as a string, so use that directly
+  String chapterNumber = widget.chapter ?? '1';
+
+  // Check if this is the last lesson in the chapter
+  _isLastLessonInChapter(chapterNumber, currentLetter, currentLessonNumber)
+      .then((isLastLesson) {
+    if (isLastLesson) {
+      // Show completion message
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+              'Congratulations! You completed all lessons in this chapter!'),
+          duration: Duration(seconds: 3),
+        ),
+      );
+
+      // Short delay before navigating back to home
+      Future.delayed(const Duration(seconds: 2), () {
+        Navigator.of(context).pushAndRemoveUntil(
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) =>
+                const MyHomePage(title: 'MOZHI Demo Home Page'),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) {
+              return FadeTransition(
+                opacity: animation,
+                child: SlideTransition(
+                  position: Tween<Offset>(
+                    begin: const Offset(0.0, 0.05),
+                    end: Offset.zero,
+                  ).animate(CurvedAnimation(
+                    parent: animation,
+                    curve: Curves.easeOutQuint,
+                  )),
+                  child: child,
+                ),
+              );
+            },
+            transitionDuration: const Duration(milliseconds: 400),
+          ),
+          (route) => false, // This clears the navigation stack
+        );
+      });
+    } else {
+      // Navigate to the next lesson in this chapter
+      int nextLessonNumber = currentLessonNumber + 1;
+
+      // Construct the next lesson's symbol - keeping the same letter but incrementing the number
+      String nextSymbol = '$currentLetter$nextLessonNumber';
+
+      Navigator.of(context).pushReplacement(
+        PageRouteBuilder(
+          pageBuilder: (context, animation, secondaryAnimation) =>
+              LessonScreen(chapter: chapterNumber, lesson: nextSymbol),
+          transitionsBuilder:
+              (context, animation, secondaryAnimation, child) {
+            return FadeTransition(
+              opacity: animation,
+              child: SlideTransition(
+                position: Tween<Offset>(
+                  begin: const Offset(0.0, 0.05),
+                  end: Offset.zero,
+                ).animate(CurvedAnimation(
+                  parent: animation,
+                  curve: Curves.easeOutQuint,
+                )),
+                child: child,
+              ),
+            );
+          },
+          transitionDuration: const Duration(milliseconds: 400),
+        ),
+      );
+    }
+  });
+}
+
+// Add this method to check if the current lesson is the last one in the chapter
+  Future<bool> _isLastLessonInChapter(
+    String chapterNumber, String letterSymbol, int lessonNumber) async {
+  try {
+    // Get the chapter document from Firestore
+    DocumentSnapshot chapterDoc = await FirebaseFirestore.instance
+        .collection("chapters")
+        .doc(chapterNumber)
+        .get();
+
+    if (!chapterDoc.exists) {
+      print("Chapter document doesn't exist: $chapterNumber");
+      return false;
+    }
+
+    // Get the lessons data from the chapter
+    Map<String, dynamic> chapterData =
+        chapterDoc.data() as Map<String, dynamic>;
+
+    print("Chapter data retrieved: $chapterData");
+
+    // Check if lessons field exists and get the count of lessons
+    if (chapterData.containsKey('lessonCount')) {
+      int totalLessons = chapterData['lessonCount'];
+      return lessonNumber >= totalLessons;
+    } else if (chapterData.containsKey('lessons')) {
+      // Alternative way: if lessons are stored as a map or array
+      var lessons = chapterData['lessons'];
+      if (lessons is List) {
+        return lessonNumber >= lessons.length;
+      } else if (lessons is Map) {
+        return lessonNumber >= lessons.length;
+      }
+    }
+
+    // If we can't determine the lesson count, default behavior
+    // You might want to adjust this based on your specific data structure
+    return lessonNumber >= 3; // Assuming 3 lessons per chapter as fallback
+  } catch (e) {
+    print("Error checking if last lesson: $e");
+    return false;
+  }
+}
   Future<void> _initializeVideo() async {
     // Use asset-based approach instead of file path
     try {
@@ -103,23 +234,26 @@ class _LessonScreenState extends State<LessonScreen>
   }
 
   Future<void> _initializeCamera() async {
-    try {
-      cameras = await availableCameras();
-      if (cameras.isNotEmpty) {
-        _cameraController = CameraController(
-          cameras[0],
-          ResolutionPreset.medium,
-          enableAudio: false,
-        );
-        await _cameraController!.initialize();
-        if (mounted) {
-          setState(() {
-            _isCameraInitialized = true;
-          });
+    if (!isLearnActive) {
+      // Only initialize if in test mode
+      try {
+        cameras = await availableCameras();
+        if (cameras.isNotEmpty) {
+          _cameraController = CameraController(
+            cameras[0],
+            ResolutionPreset.medium,
+            enableAudio: false,
+          );
+          await _cameraController!.initialize();
+          if (mounted) {
+            setState(() {
+              _isCameraInitialized = true;
+            });
+          }
         }
+      } catch (e) {
+        print('Error initializing camera: $e');
       }
-    } catch (e) {
-      print('Error initializing camera: $e');
     }
   }
 
@@ -138,24 +272,38 @@ class _LessonScreenState extends State<LessonScreen>
         isLearnActive = learnMode;
 
         if (isLearnActive) {
-          // If switching to learn mode, play video and pause camera
+          // If switching to learn mode, play video and dispose camera
           if (_isVideoInitialized) {
             _videoController.play();
           }
-          _cameraController?.pausePreview();
+
+          // Dispose camera controller if it exists
+          if (_cameraController != null &&
+              _cameraController!.value.isInitialized) {
+            _cameraController!.dispose();
+            _cameraController = null;
+            _isCameraInitialized = false;
+          }
+
           // Cancel any ongoing timers
           _countdownTimer?.cancel();
           _isTakingPicture = false;
         } else {
-          // If switching to test mode, pause video and resume camera
+          // If switching to test mode, pause video and initialize camera
           if (_isVideoInitialized) {
             _videoController.pause();
           }
-          _cameraController?.resumePreview();
+
+          // Initialize camera if not already initialized
+          if (_cameraController == null ||
+              !_cameraController!.value.isInitialized) {
+            _initializeCamera();
+          } else {
+            _cameraController?.resumePreview();
+          }
+
           // Reset the evaluation result
-          setState(() {
-            _evaluationResult = '';
-          });
+          _evaluationResult = '';
         }
       }
     });
@@ -343,7 +491,9 @@ class _LessonScreenState extends State<LessonScreen>
   @override
   void dispose() {
     _videoController.dispose();
-    _cameraController?.dispose();
+    if (_cameraController != null) {
+      _cameraController!.dispose();
+    }
     _countdownTimer?.cancel();
     super.dispose();
   }
@@ -432,6 +582,7 @@ class _LessonScreenState extends State<LessonScreen>
     );
   }
 
+  // Replace the _buildAlphabetTestInstructions method with this updated version
   Widget _buildAlphabetTestInstructions() {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -504,48 +655,111 @@ class _LessonScreenState extends State<LessonScreen>
             ),
           ),
         const SizedBox(height: 40),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Button to take a picture
-            ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFF5DFD2),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(30),
-                ),
-              ),
-              onPressed: _isTakingPicture ? null : _startCountdown,
-              icon: const Icon(Icons.camera_alt, color: Colors.black87),
-              label: Text(
-                _isTakingPicture ? "Taking picture..." : "Take picture",
-                style: const TextStyle(color: Colors.black87, fontSize: 16),
-              ),
-            ),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            // Check if there's enough width for horizontal buttons
+            if (constraints.maxWidth >= 350) {
+              // Enough space - use horizontal layout
+              return Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Button to take a picture
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFF5DFD2),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                    ),
+                    onPressed: _isTakingPicture ? null : _startCountdown,
+                    icon: const Icon(Icons.camera_alt, color: Colors.black87),
+                    label: Text(
+                      _isTakingPicture ? "Taking picture..." : "Take picture",
+                      style:
+                          const TextStyle(color: Colors.black87, fontSize: 16),
+                    ),
+                  ),
 
-            const SizedBox(width: 15),
+                  const SizedBox(width: 15),
 
-            // Button to change the letter
-            ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.grey.shade300,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(30),
+                  // Button to navigate to next lesson (only enabled when current letter is correct)
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.grey.shade300,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                    ),
+                    onPressed: (_evaluationResult == _currentLetter)
+                        ? _navigateToNextLesson
+                        : null,
+                    icon:
+                        const Icon(Icons.arrow_forward, color: Colors.black87),
+                    label: const Text(
+                      "Next Lesson",
+                      style: TextStyle(color: Colors.black87, fontSize: 16),
+                    ),
+                  ),
+                ],
+              );
+            } else {
+              // Not enough space - use vertical layout
+              return Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Button to take a picture
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFF5DFD2),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 20, vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                      ),
+                      onPressed: _isTakingPicture ? null : _startCountdown,
+                      icon: const Icon(Icons.camera_alt, color: Colors.black87),
+                      label: Text(
+                        _isTakingPicture ? "Taking picture..." : "Take picture",
+                        style: const TextStyle(
+                            color: Colors.black87, fontSize: 16),
+                      ),
+                    ),
+
+                    const SizedBox(height: 15),
+
+                    // Button to navigate to next lesson (only enabled when current letter is correct)
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.grey.shade300,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 20, vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                      ),
+                      onPressed: (_evaluationResult == _currentLetter)
+                          ? _navigateToNextLesson
+                          : null,
+                      icon: const Icon(Icons.arrow_forward,
+                          color: Colors.black87),
+                      label: const Text(
+                        "Next Lesson",
+                        style: TextStyle(color: Colors.black87, fontSize: 16),
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-              onPressed: _changeLetter,
-              icon: const Icon(Icons.refresh, color: Colors.black87),
-              label: const Text(
-                "Next Letter",
-                style: TextStyle(color: Colors.black87, fontSize: 16),
-              ),
-            ),
-          ],
-        ),
+              );
+            }
+          },
+        )
       ],
     );
   }
@@ -557,56 +771,7 @@ class _LessonScreenState extends State<LessonScreen>
     return Scaffold(
       body: Row(
         children: [
-          Container(
-            // left sidebar
-            padding: const EdgeInsets.all(10),
-            color: Colors.black,
-            width: 200,
-            height: MediaQuery.of(context).size.height,
-            child: Column(
-              children: [
-                Container(
-                  margin: const EdgeInsets.only(bottom: 100, top: 20),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    children: [
-                      const CircleAvatar(
-                        backgroundColor: Colors.white,
-                      ),
-                      Container(
-                        margin: const EdgeInsets.only(left: 20),
-                        child: const Text(
-                          "MOZHI",
-                          textScaler: TextScaler.linear(3),
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontFamily: "Squada One",
-                            fontWeight: FontWeight.w600,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                sidebarElement("Home", Icons.home, true, _goBack),
-                const SizedBox(height: 10),
-                sidebarElement("Rankings", Icons.bar_chart, false),
-                const SizedBox(height: 10),
-                sidebarElement("Profile", Icons.person_outline, false),
-                const Spacer(),
-                Align(
-                  alignment: Alignment.bottomLeft,
-                  child: Column(
-                    children: [
-                      sidebarElement("Settings", Icons.settings, false),
-                      sidebarElement("Logout", Icons.logout, false),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
+          const Sidebar(),
           Container(
             width: width - 200,
             color: Colors.black,
@@ -621,54 +786,7 @@ class _LessonScreenState extends State<LessonScreen>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Top Bar with streak and profile
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: Colors.grey.shade300),
-                        ),
-                        child: const Row(
-                          children: [
-                            Icon(Icons.local_fire_department,
-                                color: Colors.orange),
-                            SizedBox(width: 5),
-                            Text('365'),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: Colors.grey.shade300),
-                        ),
-                        child: const Row(
-                          children: [
-                            CircleAvatar(
-                              radius: 15,
-                              backgroundImage:
-                                  AssetImage('../assets/stephen.jpg'),
-                            ),
-                            SizedBox(width: 8),
-                            Text('Stephen'),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-
+                  const TopBar(),
                   const SizedBox(height: 10),
                   const Divider(
                     color: Color.fromARGB(255, 163, 163, 163),
