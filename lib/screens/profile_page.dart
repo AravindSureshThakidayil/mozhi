@@ -5,6 +5,9 @@ import 'package:mozhi/authentication/screens/signout_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
+import 'package:camera/camera.dart';
+import 'package:mozhi/methods/camera_service.dart';
+import 'dart:async';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -21,7 +24,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void initState() {
     super.initState();
     _userDataFuture = _fetchUserData();
+      _disableCamera();
   }
+
+  
+
+// Method to disable camera
+void _disableCamera() async {
+  try {
+    // Get list of cameras
+    final cameras = await availableCameras();
+    
+    // For each camera, create a controller and dispose it immediately
+    // This ensures any active camera instances are properly shut down
+    for (var camera in cameras) {
+        final controller = CameraController(
+          camera,
+          ResolutionPreset.low,
+          enableAudio: false,
+        );
+        
+        // Initialize and then immediately dispose
+        await controller.initialize();
+        await controller.dispose();
+      }
+      
+      print('Camera disabled in ProfileScreen');
+    } catch (e) {
+      print('Error while disabling camera in ProfileScreen: $e');
+    }
+}
 
   Future<DocumentSnapshot<Map<String, dynamic>>> _fetchUserData() async {
     final user = FirebaseAuth.instance.currentUser;
@@ -34,6 +66,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
       // Handle the case where the user is not signed in
       return Future.error('User not signed in');
     }
+  }
+
+  Future<Map<String, String>> fetchLessonChapterMappings() async {
+    Map<String, String> lessonIdToChapter = {};
+    try {
+      final chaptersRef = FirebaseFirestore.instance.collection('chapters');
+      final chaptersSnapshot = await chaptersRef.get();
+
+      for (var chapterDoc in chaptersSnapshot.docs) {
+        final chapterData = chapterDoc.data();
+        final chapterName = chapterData['name'] ?? 'Unknown Chapter';
+        final chapterNumber = chapterDoc.id;
+
+        final lessonsRef = chapterDoc.reference.collection('lessons');
+        final lessonsSnapshot = await lessonsRef.get();
+
+        for (var lessonDoc in lessonsSnapshot.docs) {
+          final lessonId = 'chapters/${chapterNumber}/lessons/${lessonDoc.id}';
+          lessonIdToChapter[lessonId] =
+              'Chapter ${chapterNumber}: ${chapterName}';
+        }
+      }
+
+      print(
+          'Successfully fetched ${lessonIdToChapter.length} lesson-to-chapter mappings');
+    } catch (e) {
+      print('Error fetching chapter data: $e');
+    }
+
+    return lessonIdToChapter;
   }
 
   void _sendToLogin() {
@@ -208,7 +270,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+<<<<<<< HEAD
   Widget _buildCompletedLessons(
+=======
+Widget _buildCompletedLessons(
+>>>>>>> 68d3daf443e2a1c199fc3c880fb1408b92843858
       AsyncSnapshot<DocumentSnapshot<Map<String, dynamic>>> snapshot) {
     final userData = snapshot.data!.data();
     final completedLessonsData =
@@ -227,6 +293,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       };
     }).toList();
 
+<<<<<<< HEAD
     // Group completed lessons by chapter
     final Map<String, List<Map<String, dynamic>>> lessonsByChapter = {};
     for (var lesson in completedLessons) {
@@ -245,22 +312,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
       lessonsByChapter[chapterName]!.add(lesson);
     }
+=======
+    return FutureBuilder<Map<String, String>>(
+      future: fetchLessonChapterMappings(),
+      builder: (context, chapterMappingSnapshot) {
+        if (chapterMappingSnapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Completed Lessons',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 8),
-        if (completedLessons.isEmpty)
-          const Text('No lessons completed yet.')
-        else
-          ...lessonsByChapter.entries.map((entry) {
-            final chapterName = entry.key;
-            final lessonsInChapter = entry.value;
+        if (chapterMappingSnapshot.hasError) {
+          return Text('Error loading chapter data: ${chapterMappingSnapshot.error}');
+        }
+>>>>>>> 68d3daf443e2a1c199fc3c880fb1408b92843858
 
+        final lessonIdToChapter = chapterMappingSnapshot.data ?? {};
+
+<<<<<<< HEAD
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -300,31 +367,90 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               DateFormat('dd-MM-yyyy').format(completedAt);
                           formattedTime =
                               DateFormat('HH:mm').format(completedAt);
+=======
+        // Group completed lessons by chapter
+        final Map<String, List<Map<String, dynamic>>> lessonsByChapter = {};
+        for (var lesson in completedLessons) {
+          final lessonId = lesson['lessonid'];
+          final chapter = lessonIdToChapter[lessonId] ?? 'Unknown Chapter';
+          if (!lessonsByChapter.containsKey(chapter)) {
+            lessonsByChapter[chapter] = [];
+          }
+          lessonsByChapter[chapter]!.add(lesson);
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Completed Lessons',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            if (completedLessons.isEmpty)
+              const Text('No lessons completed yet.')
+            else
+              ...lessonsByChapter.entries.map((entry) {
+                final chapterName = entry.key;
+                final lessonsInChapter = entry.value;
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      chapterName,
+                      style: const TextStyle(
+                          fontSize: 18, fontWeight: FontWeight.w600),
+                    ),
+                    const Divider(height: 8),
+                    ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: lessonsInChapter.length,
+                      separatorBuilder: (context, index) =>
+                          const Divider(height: 1),
+                      itemBuilder: (context, index) {
+                        final lesson = lessonsInChapter[index];
+                        final DateTime? completedAt = lesson['completedAt'];
+                        String formattedDate = 'N/A';
+                        String formattedTime = 'N/A';
+                        if (completedAt != null) {
+                          formattedDate = DateFormat('dd-MM-yyyy').format(completedAt);
+                          formattedTime = DateFormat('HH:mm').format(completedAt);
+>>>>>>> 68d3daf443e2a1c199fc3c880fb1408b92843858
                         }
 
                         return ListTile(
                           contentPadding: EdgeInsets.zero,
                           leading: const Icon(Icons.check_circle_outline,
                               color: Colors.green),
+<<<<<<< HEAD
                           title: Text(lessonName),
+=======
+                          title: Text('Lesson ${index + 1}'),
+>>>>>>> 68d3daf443e2a1c199fc3c880fb1408b92843858
                           subtitle: Text(
                             'Completed on $formattedDate at $formattedTime',
                             style: const TextStyle(color: Colors.grey),
                           ),
                           onTap: () {
                             print(
+<<<<<<< HEAD
                                 'Tapped on completed lesson: $lessonName in $chapterName');
+=======
+                                'Tapped on completed lesson: ${index + 1} in $chapterName');
+>>>>>>> 68d3daf443e2a1c199fc3c880fb1408b92843858
                           },
                         );
                       },
-                    );
-                  },
-                ),
-                const SizedBox(height: 10),
-              ],
-            );
-          }).toList(),
-      ],
+                    ),
+                    const SizedBox(height: 10),
+                  ],
+                );
+              }).toList(),
+          ],
+        );
+      },
     );
   }
 
@@ -349,16 +475,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       mainAxisAlignment: MainAxisAlignment.start,
                       children: [
                         const CircleAvatar(
-                          backgroundColor: Colors.white,
-                          radius: 30,
-                          child: Text(
-                            "M",
-                            style: TextStyle(
-                                color: Colors.black,
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold),
-                          ),
-                        ),
+                                radius: 15,
+                                backgroundImage:
+                                    AssetImage('../assets/mozhilogo.jpg'),
+                              ),
                         Container(
                           margin: const EdgeInsets.only(left: 20),
                           child: const Text(
@@ -375,7 +495,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ],
                     ),
                   ),
-                  sidebarElement("Home", Icons.home, false, () {}),
+                  sidebarElement("Home", Icons.home, false, () {
+                     if (Navigator.of(context).canPop()) {
+    // Navigate back to the first route (home page)
+    Navigator.of(context).popUntil((route) => route.isFirst);
+  }
+  // If we're already on the home page, do nothing
+                  }),
                   const SizedBox(height: 10),
                   sidebarElement("Rankings", Icons.bar_chart, false, () {
                     Navigator.of(context).push(
@@ -387,13 +513,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   const SizedBox(height: 10),
                   sidebarElement("Profile", Icons.person_outline, true),
                   const SizedBox(height: 10),
-                  _evaluationButton(),
+                  //_evaluationButton(),
                   const Spacer(),
                   Align(
                     alignment: Alignment.bottomLeft,
                     child: Column(
                       children: [
-                        sidebarElement("Settings", Icons.settings, false),
+                        //sidebarElement("Settings", Icons.settings, false),
                         _isSignedIn
                             ? sidebarElement(
                                 "Logout", Icons.logout, false, _sendToLogout)
