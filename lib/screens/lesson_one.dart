@@ -42,7 +42,7 @@ class _LessonScreenState extends State<LessonScreen>
   @override
   void initState() {
     super.initState();
-    _initializeVideo();
+    _initializeVideo(widget.lesson?[0] ?? "1");
     //_initializeCamera();
     String alphabet = widget.lesson ?? 'A1';
     _currentLetter =
@@ -191,11 +191,12 @@ class _LessonScreenState extends State<LessonScreen>
     }
   }
 
-  Future<void> _initializeVideo() async {
+  Future<void> _initializeVideo(String lesson) async {
     // Use asset-based approach instead of file path
     try {
-      _videoController =
-          VideoPlayerController.asset('../../assets/lesson1.mp4');
+      _videoController = VideoPlayerController.asset(
+          "http://localhost:9000/videos/" + lesson + ".mp4");
+      // print("\033[46mThe lesson is " + lesson + ".\033[0m\n");
 
       // Add listener to update UI when video status changes
       _videoController.addListener(() {
@@ -208,7 +209,7 @@ class _LessonScreenState extends State<LessonScreen>
       await _videoController.setLooping(true);
 
       // Set volume
-      await _videoController.setVolume(1.0);
+      await _videoController.setVolume(0.0);
 
       if (isLearnActive) {
         await _videoController.play();
@@ -492,7 +493,7 @@ class _LessonScreenState extends State<LessonScreen>
     super.dispose();
   }
 
-  Widget _buildVideoPlayer() {
+  Widget _buildVideoPlayer(String symbol) {
     if (_videoError != null) {
       return Center(
         child: Column(
@@ -511,7 +512,7 @@ class _LessonScreenState extends State<LessonScreen>
                   _videoError = null;
                   _isVideoInitialized = false;
                 });
-                _initializeVideo();
+                _initializeVideo(symbol);
               },
               child: const Text("Retry", style: TextStyle(color: Colors.white)),
             ),
@@ -886,7 +887,8 @@ class _LessonScreenState extends State<LessonScreen>
                                           child: Container(
                                             width: double.maxFinite,
                                             color: Colors.black,
-                                            child: _buildVideoPlayer(),
+                                            child: _buildVideoPlayer(
+                                                _currentLetter),
                                           ),
                                         )
                                       // TEST MODE: Split view with instructions on left, camera on right

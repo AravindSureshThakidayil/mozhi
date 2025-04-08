@@ -1,3 +1,5 @@
+// import 'dart:nativewrappers/_internal/vm/lib/internal_patch.dart';
+
 import 'package:flutter/material.dart';
 import 'package:mozhi/screens/rank_Screen.dart';
 import 'package:mozhi/authentication/screens/login.dart';
@@ -280,33 +282,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (completedTimestamp != null) {
         completedAt = DateTime.tryParse(completedTimestamp);
       }
-      // RegExp location = RegExp(r'.*(chapters/(\d+))');
       return {
-        'lessonId': item['lessonid'],
+        'lessonId': item['lessonid'] as String? ?? 'Unknown Lesson',
         'completedAt': completedAt,
       };
     }).toList();
 
-    // For demonstration, let's map lesson IDs to names. In a real app,
-    // you would likely fetch lesson details based on the lesson ID.
-    final Map<String, String> lessonIdToName = {
-      'chapters/1/lessons/1': 'Lesson 1: Introduction to Basics',
-      // Add more mappings as needed
-    };
-    final Map<String, String> lessonIdToChapter = {
-      'chapters/1/lessons/1': 'Chapter 1: Getting Started',
-      // Add more mappings as needed
-    };
-
     // Group completed lessons by chapter
     final Map<String, List<Map<String, dynamic>>> lessonsByChapter = {};
     for (var lesson in completedLessons) {
-      final lessonId = lesson['lessonid'];
-      final chapter = lessonIdToChapter[lessonId] ?? 'Unknown Chapter';
-      if (!lessonsByChapter.containsKey(chapter)) {
-        lessonsByChapter[chapter] = [];
+      final lessonId = lesson['lessonId'];
+      // Extract chapter number from reference path
+      String chapterNumber = 'Unknown';
+      final RegExp regExp = RegExp(r'chapters/(\d+)/');
+      final match = regExp.firstMatch(lessonId);
+      if (match != null && match.groupCount >= 1) {
+        chapterNumber = match.group(1)!;
       }
-      lessonsByChapter[chapter]!.add(lesson);
+
+      final chapterName = 'Chapter $chapterNumber';
+      if (!lessonsByChapter.containsKey(chapterName)) {
+        lessonsByChapter[chapterName] = [];
+      }
+      lessonsByChapter[chapterName]!.add(lesson);
     }
 
     return Column(
@@ -341,29 +339,48 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       const Divider(height: 1),
                   itemBuilder: (context, index) {
                     final lesson = lessonsInChapter[index];
-                    final lessonName = lessonIdToName[lesson['lessonid']] ??
-                        lesson['lessonid'];
-                    final DateTime? completedAt = lesson['completedAt'];
-                    String formattedDate = 'N/A';
-                    String formattedTime = 'N/A';
-                    if (completedAt != null) {
-                      formattedDate =
-                          DateFormat('dd-MM-yyyy').format(completedAt);
-                      formattedTime = DateFormat('HH:mm').format(completedAt);
-                    }
+                    final lessonId = lesson['lessonId'];
+                    RegExp pattern = RegExp(r".*chapters/([A-Z|1-9]+)");
+                    var chapterId = pattern.firstMatch(lessonId)![0];
 
-                    return ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: const Icon(Icons.check_circle_outline,
-                          color: Colors.green),
-                      title: Text(lessonName),
-                      subtitle: Text(
-                        'Completed on $formattedDate at $formattedTime',
-                        style: const TextStyle(color: Colors.grey),
-                      ),
-                      onTap: () {
-                        print(
-                            'Tapped on completed lesson: $lessonName in $chapterName');
+                    return FutureBuilder<DocumentSnapshot>(
+                      future: FirebaseFirestore.instance
+                          .doc(chapterId.toString())
+                          .get(),
+                      builder: (context, lessonSnapshot) {
+                        String lessonName = lessonId;
+                        // print("\033[46m" + lessonId.toString() + "\033[0m");
+                        if (lessonSnapshot.hasData &&
+                            lessonSnapshot.data != null) {
+                          final lessonData = lessonSnapshot.data!.data()
+                              as Map<String, dynamic>?;
+                          lessonName = lessonData?['title'] ?? lessonId;
+                        }
+
+                        final DateTime? completedAt = lesson['completedAt'];
+                        String formattedDate = 'N/A';
+                        String formattedTime = 'N/A';
+                        if (completedAt != null) {
+                          formattedDate =
+                              DateFormat('dd-MM-yyyy').format(completedAt);
+                          formattedTime =
+                              DateFormat('HH:mm').format(completedAt);
+                        }
+
+                        return ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: const Icon(Icons.check_circle_outline,
+                              color: Colors.green),
+                          title: Text(lessonName),
+                          subtitle: Text(
+                            'Completed on $formattedDate at $formattedTime',
+                            style: const TextStyle(color: Colors.grey),
+                          ),
+                          onTap: () {
+                            print(
+                                'Tapped on completed lesson: $lessonName in $chapterName');
+                          },
+                        );
                       },
                     );
                   },
