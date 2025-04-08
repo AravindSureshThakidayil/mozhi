@@ -70,63 +70,35 @@ class _LessonScreenState extends State<LessonScreen>
   }
 
   void _navigateToNextLesson() {
-    // Get the current lesson number from the symbol
-    String currentSymbol = widget.lesson ?? 'A1';
-    String currentLetter = currentSymbol[0];
-    int currentLessonNumber = int.parse(currentSymbol[1]);
-    int chapterNumber = int.parse(widget.lesson.toString()) ?? 1;
+  // Get the current lesson symbol
+  String currentSymbol = widget.lesson ?? 'A1';
+  
+  // Extract the chapter (letter) and lesson number
+  String currentLetter = currentSymbol[0];
+  int currentLessonNumber = int.parse(currentSymbol.substring(1));
+  
+  // The chapter is passed as a string, so use that directly
+  String chapterNumber = widget.chapter ?? '1';
 
-    // Check if this is the last lesson in the chapter
-    _isLastLessonInChapter(chapterNumber, currentLetter, currentLessonNumber)
-        .then((isLastLesson) {
-      if (isLastLesson) {
-        // Show completion message
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-                'Congratulations! You completed all lessons in this chapter!'),
-            duration: Duration(seconds: 3),
-          ),
-        );
+  // Check if this is the last lesson in the chapter
+  _isLastLessonInChapter(chapterNumber, currentLetter, currentLessonNumber)
+      .then((isLastLesson) {
+    if (isLastLesson) {
+      // Show completion message
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+              'Congratulations! You completed all lessons in this chapter!'),
+          duration: Duration(seconds: 3),
+        ),
+      );
 
-        // Short delay before navigating back
-        Future.delayed(const Duration(seconds: 2), () {
-          Navigator.of(context).pushAndRemoveUntil(
-            PageRouteBuilder(
-              pageBuilder: (context, animation, secondaryAnimation) =>
-                  const MyHomePage(title: 'MOZHI Demo Home Page'),
-              transitionsBuilder:
-                  (context, animation, secondaryAnimation, child) {
-                return FadeTransition(
-                  opacity: animation,
-                  child: SlideTransition(
-                    position: Tween<Offset>(
-                      begin: const Offset(0.0, 0.05),
-                      end: Offset.zero,
-                    ).animate(CurvedAnimation(
-                      parent: animation,
-                      curve: Curves.easeOutQuint,
-                    )),
-                    child: child,
-                  ),
-                );
-              },
-              transitionDuration: const Duration(milliseconds: 400),
-            ),
-            (route) => false, // This clears the navigation stack
-          );
-        });
-      } else {
-        // Navigate to the next lesson in this chapter
-        int nextLessonNumber = currentLessonNumber + 1;
-
-        // Construct the next lesson's symbol - keeping the same letter but incrementing the number
-        String nextSymbol = '$currentLetter$nextLessonNumber';
-
-        Navigator.of(context).pushReplacement(
+      // Short delay before navigating back to home
+      Future.delayed(const Duration(seconds: 2), () {
+        Navigator.of(context).pushAndRemoveUntil(
           PageRouteBuilder(
             pageBuilder: (context, animation, secondaryAnimation) =>
-                LessonScreen(chapter: nextSymbol),
+                const MyHomePage(title: 'MOZHI Demo Home Page'),
             transitionsBuilder:
                 (context, animation, secondaryAnimation, child) {
               return FadeTransition(
@@ -145,52 +117,86 @@ class _LessonScreenState extends State<LessonScreen>
             },
             transitionDuration: const Duration(milliseconds: 400),
           ),
+          (route) => false, // This clears the navigation stack
         );
-      }
-    });
-  }
+      });
+    } else {
+      // Navigate to the next lesson in this chapter
+      int nextLessonNumber = currentLessonNumber + 1;
+
+      // Construct the next lesson's symbol - keeping the same letter but incrementing the number
+      String nextSymbol = '$currentLetter$nextLessonNumber';
+
+      Navigator.of(context).pushReplacement(
+        PageRouteBuilder(
+          pageBuilder: (context, animation, secondaryAnimation) =>
+              LessonScreen(chapter: chapterNumber, lesson: nextSymbol),
+          transitionsBuilder:
+              (context, animation, secondaryAnimation, child) {
+            return FadeTransition(
+              opacity: animation,
+              child: SlideTransition(
+                position: Tween<Offset>(
+                  begin: const Offset(0.0, 0.05),
+                  end: Offset.zero,
+                ).animate(CurvedAnimation(
+                  parent: animation,
+                  curve: Curves.easeOutQuint,
+                )),
+                child: child,
+              ),
+            );
+          },
+          transitionDuration: const Duration(milliseconds: 400),
+        ),
+      );
+    }
+  });
+}
 
 // Add this method to check if the current lesson is the last one in the chapter
   Future<bool> _isLastLessonInChapter(
-      int chapterNumber, String letterSymbol, int lessonNumber) async {
-    try {
-      // Get the chapter document from Firestore
-      DocumentSnapshot chapterDoc = await FirebaseFirestore.instance
-          .collection("chapters")
-          .doc(chapterNumber.toString())
-          .get();
+    String chapterNumber, String letterSymbol, int lessonNumber) async {
+  try {
+    // Get the chapter document from Firestore
+    DocumentSnapshot chapterDoc = await FirebaseFirestore.instance
+        .collection("chapters")
+        .doc(chapterNumber)
+        .get();
 
-      if (!chapterDoc.exists) {
-        return false;
-      }
-
-      // Get the lessons data from the chapter
-      Map<String, dynamic> chapterData =
-          chapterDoc.data() as Map<String, dynamic>;
-
-      // Check if lessons field exists and get the count of lessons
-      if (chapterData.containsKey('lessonCount')) {
-        int totalLessons = chapterData['lessonCount'];
-        return lessonNumber >= totalLessons;
-      } else if (chapterData.containsKey('lessons')) {
-        // Alternative way: if lessons are stored as a map or array
-        var lessons = chapterData['lessons'];
-        if (lessons is List) {
-          return lessonNumber >= lessons.length;
-        } else if (lessons is Map) {
-          return lessonNumber >= lessons.length;
-        }
-      }
-
-      // If we can't determine the lesson count, default behavior
-      // You might want to adjust this based on your specific data structure
-      return lessonNumber >= 5; // Assuming 5 lessons per chapter as fallback
-    } catch (e) {
-      print("Error checking if last lesson: $e");
+    if (!chapterDoc.exists) {
+      print("Chapter document doesn't exist: $chapterNumber");
       return false;
     }
-  }
 
+    // Get the lessons data from the chapter
+    Map<String, dynamic> chapterData =
+        chapterDoc.data() as Map<String, dynamic>;
+
+    print("Chapter data retrieved: $chapterData");
+
+    // Check if lessons field exists and get the count of lessons
+    if (chapterData.containsKey('lessonCount')) {
+      int totalLessons = chapterData['lessonCount'];
+      return lessonNumber >= totalLessons;
+    } else if (chapterData.containsKey('lessons')) {
+      // Alternative way: if lessons are stored as a map or array
+      var lessons = chapterData['lessons'];
+      if (lessons is List) {
+        return lessonNumber >= lessons.length;
+      } else if (lessons is Map) {
+        return lessonNumber >= lessons.length;
+      }
+    }
+
+    // If we can't determine the lesson count, default behavior
+    // You might want to adjust this based on your specific data structure
+    return lessonNumber >= 3; // Assuming 3 lessons per chapter as fallback
+  } catch (e) {
+    print("Error checking if last lesson: $e");
+    return false;
+  }
+}
   Future<void> _initializeVideo() async {
     // Use asset-based approach instead of file path
     try {
