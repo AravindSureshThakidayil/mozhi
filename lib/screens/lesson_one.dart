@@ -71,135 +71,108 @@ class _LessonScreenState extends State<LessonScreen>
     }
   }
 
-  void _navigateToNextLesson() {
-    // Get the current lesson symbol
-    String currentSymbol = widget.lesson ?? 'A1';
+ void _navigateToNextLesson() {
+  // Get the current lesson symbol
+  String currentSymbol = widget.lesson ?? 'A1';
 
-    // Extract the chapter (letter) and lesson number
-    String currentLetter = currentSymbol[0];
-    int currentLessonNumber = int.parse(currentSymbol.substring(1));
+  // Extract the chapter (letter) and lesson number
+  String currentLetter = currentSymbol[0];
+  int currentLessonNumber = int.parse(currentSymbol.substring(1));
 
-    // The chapter is passed as a string, so use that directly
-    String chapterNumber = widget.chapter ?? '1';
+  // The chapter is passed as a string, so use that directly
+  String chapterNumber = widget.chapter ?? '1';
 
-    // Check if this is the last lesson in the chapter
-    _isLastLessonInChapter(chapterNumber, currentLetter, currentLessonNumber)
-        .then((isLastLesson) {
-      if (isLastLesson) {
-        // Show completion message
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-                'Congratulations! You completed all lessons in this chapter!'),
-            duration: Duration(seconds: 3),
-          ),
-        );
+  // Check if this is the last lesson in the chapter by querying the 'lessons' collection
+  _isLastLessonInChapter(chapterNumber, currentLetter, currentLessonNumber)
+      .then((isLastLesson) {
+    if (isLastLesson) {
+      // Show completion message
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+              'Congratulations! You completed all lessons in this chapter!'),
+          duration: Duration(seconds: 3),
+        ),
+      );
 
-        // Short delay before navigating back to home
-        Future.delayed(const Duration(seconds: 2), () {
+      // Short delay before navigating back to home
+      Future.delayed(const Duration(seconds: 2), () {
+        try {
+          // Navigate to the main page and clear the navigation stack
           Navigator.of(context).pushAndRemoveUntil(
-            PageRouteBuilder(
-              pageBuilder: (context, animation, secondaryAnimation) =>
-                  const MyHomePage(title: 'MOZHI Demo Home Page'),
-              transitionsBuilder:
-                  (context, animation, secondaryAnimation, child) {
-                return FadeTransition(
-                  opacity: animation,
-                  child: SlideTransition(
-                    position: Tween<Offset>(
-                      begin: const Offset(0.0, 0.05),
-                      end: Offset.zero,
-                    ).animate(CurvedAnimation(
-                      parent: animation,
-                      curve: Curves.easeOutQuint,
-                    )),
-                    child: child,
-                  ),
-                );
-              },
-              transitionDuration: const Duration(milliseconds: 400),
+            MaterialPageRoute(
+              builder: (context) => const MyHomePage(title: 'MOZHI Demo Home Page'),
             ),
             (route) => false, // This clears the navigation stack
           );
-        });
-      } else {
-        // Navigate to the next lesson in this chapter
-        int nextLessonNumber = currentLessonNumber + 1;
-
-        // Construct the next lesson's symbol - keeping the same letter but incrementing the number
-        String nextSymbol = '$currentLetter$nextLessonNumber';
-
-        Navigator.of(context).pushReplacement(
-          PageRouteBuilder(
-            pageBuilder: (context, animation, secondaryAnimation) =>
-                LessonScreen(chapter: chapterNumber, lesson: nextSymbol),
-            transitionsBuilder:
-                (context, animation, secondaryAnimation, child) {
-              return FadeTransition(
-                opacity: animation,
-                child: SlideTransition(
-                  position: Tween<Offset>(
-                    begin: const Offset(0.0, 0.05),
-                    end: Offset.zero,
-                  ).animate(CurvedAnimation(
-                    parent: animation,
-                    curve: Curves.easeOutQuint,
-                  )),
-                  child: child,
-                ),
-              );
-            },
-            transitionDuration: const Duration(milliseconds: 400),
-          ),
-        );
-      }
-    });
-  }
-
-// Add this method to check if the current lesson is the last one in the chapter
-  Future<bool> _isLastLessonInChapter(
-      String chapterNumber, String letterSymbol, int lessonNumber) async {
-    try {
-      // Get the chapter document from Firestore
-      DocumentSnapshot chapterDoc = await FirebaseFirestore.instance
-          .collection("chapters")
-          .doc(chapterNumber)
-          .get();
-
-      if (!chapterDoc.exists) {
-        print("Chapter document doesn't exist: $chapterNumber");
-        return false;
-      }
-
-      // Get the lessons data from the chapter
-      Map<String, dynamic> chapterData =
-          chapterDoc.data() as Map<String, dynamic>;
-
-      print("Chapter data retrieved: $chapterData");
-
-      // Check if lessons field exists and get the count of lessons
-      if (chapterData.containsKey('lessonCount')) {
-        int totalLessons = chapterData['lessonCount'];
-        return lessonNumber >= totalLessons;
-      } else if (chapterData.containsKey('lessons')) {
-        // Alternative way: if lessons are stored as a map or array
-        var lessons = chapterData['lessons'];
-        if (lessons is List) {
-          return lessonNumber >= lessons.length;
-        } else if (lessons is Map) {
-          return lessonNumber >= lessons.length;
+        } catch (e) {
+          print("Navigation error: $e");
+          // Fallback navigation - just pop back to first route
+          Navigator.of(context).popUntil((route) => route.isFirst);
         }
-      }
+      });
+    } else {
+      // Navigate to the next lesson in this chapter
+      int nextLessonNumber = currentLessonNumber + 1;
 
-      // If we can't determine the lesson count, default behavior
-      // You might want to adjust this based on your specific data structure
-      return lessonNumber >= 5; // Assuming 5 lessons per chapter as fallback
-    } catch (e) {
-      print("Error checking if last lesson: $e");
+      // Construct the next lesson's symbol - keeping the same letter but incrementing the number
+      String nextSymbol = '$currentLetter$nextLessonNumber';
+
+      Navigator.of(context).pushReplacement(
+        PageRouteBuilder(
+          pageBuilder: (context, animation, secondaryAnimation) =>
+              LessonScreen(chapter: chapterNumber, lesson: nextSymbol),
+          transitionsBuilder:
+              (context, animation, secondaryAnimation, child) {
+            return FadeTransition(
+              opacity: animation,
+              child: SlideTransition(
+                position: Tween<Offset>(
+                  begin: const Offset(0.0, 0.05),
+                  end: Offset.zero,
+                ).animate(CurvedAnimation(
+                  parent: animation,
+                  curve: Curves.easeOutQuint,
+                )),
+                child: child,
+              ),
+            );
+          },
+          transitionDuration: const Duration(milliseconds: 400),
+        ),
+      );
+    }
+  });
+}
+
+// Update this method to check the 'lessons' collection
+Future<bool> _isLastLessonInChapter(
+    String chapterNumber, String letterSymbol, int lessonNumber) async {
+  try {
+    // Get the lessons for this chapter from Firestore
+    QuerySnapshot lessonsSnapshot = await FirebaseFirestore.instance
+        .collection("chapters")
+        .doc(chapterNumber)
+        .collection("lessons")
+        .get();
+
+    if (lessonsSnapshot.docs.isEmpty) {
+      print("No lessons found for chapter: $chapterNumber");
       return false;
     }
-  }
 
+    // Count the total number of lessons in this chapter
+    int totalLessons = lessonsSnapshot.docs.length;
+    print("Total lessons in chapter $chapterNumber: $totalLessons");
+    print("Current lesson number: $lessonNumber");
+
+    // Check if the current lesson is the last one
+    return lessonNumber >= totalLessons;
+  } catch (e) {
+    print("Error checking if last lesson: $e");
+    return false;
+  }
+}
   Future<void> _initializeVideo(String lesson) async {
     // Use asset-based approach instead of file path
     try {
