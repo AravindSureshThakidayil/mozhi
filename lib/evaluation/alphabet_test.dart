@@ -84,10 +84,10 @@ class Alphabet extends StatelessWidget {
   final String evaluationResult;
 
   const Alphabet({
-    Key? key,
+    super.key,
     required this.letter,
     required this.evaluationResult,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

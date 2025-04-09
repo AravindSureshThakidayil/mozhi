@@ -12,7 +12,8 @@ class _CreateAccountState extends State<CreateAccount> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _dobController = TextEditingController();
-  final TextEditingController _usernameController = TextEditingController(); // Added username controller
+  final TextEditingController _usernameController =
+      TextEditingController(); // Added username controller
 
   DateTime? _selectedDate;
   bool _obscurePassword = true;
@@ -47,7 +48,7 @@ class _CreateAccountState extends State<CreateAccount> {
               children: [
                 TextField(
                   controller: _usernameController, // Username field
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                     labelText: 'Username',
                     hintText: 'Choose a username',
                     border: OutlineInputBorder(),
@@ -57,7 +58,7 @@ class _CreateAccountState extends State<CreateAccount> {
                 TextField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                     labelText: 'Email Address',
                     hintText: 'Enter your email',
                     border: OutlineInputBorder(),
@@ -70,7 +71,7 @@ class _CreateAccountState extends State<CreateAccount> {
                   decoration: InputDecoration(
                     labelText: 'Password',
                     hintText: 'Enter your password',
-                    border: OutlineInputBorder(),
+                    border: const OutlineInputBorder(),
                     suffixIcon: IconButton(
                       icon: Icon(
                         _obscurePassword
@@ -90,11 +91,11 @@ class _CreateAccountState extends State<CreateAccount> {
                   controller: _dobController,
                   readOnly: true,
                   onTap: () => _selectDate(context),
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                     labelText: 'Date of Birth',
                     hintText: 'Tap to select your date of birth',
                     border: OutlineInputBorder(),
-                    suffixIcon: const Icon(Icons.calendar_today),
+                    suffixIcon: Icon(Icons.calendar_today),
                   ),
                 ),
                 const SizedBox(height: 30),

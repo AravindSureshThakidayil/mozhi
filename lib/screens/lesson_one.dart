@@ -37,30 +37,30 @@ class _LessonScreenState extends State<LessonScreen>
   int _timerstore = 5;
   Timer? _countdownTimer;
   bool _isTakingPicture = false;
-  int _level = 1;
+  final int _level = 1;
   late int score;
 
   @override
   void initState() {
     super.initState();
-    _initializeVideo(widget.lesson?[0] ?? "1");
+    _initializeVideo(widget.lesson[0] ?? "1");
     //_initializeCamera();
     String alphabet = widget.lesson ?? 'A1';
     _currentLetter =
         alphabet.toUpperCase()[0]; // Default to 'A' if symbol is null
-    int _level = int.parse(alphabet[1]);
-    print("Level: $_level");
-    if (_level == 1) {
+    int level = int.parse(alphabet[1]);
+    print("Level: $level");
+    if (level == 1) {
       _timerstore = 5;
       _timerSeconds = _timerstore;
-    } else if (_level == 2) {
+    } else if (level == 2) {
       _timerstore = 3;
       _timerSeconds = _timerstore;
-    } else if (_level == 3) {
+    } else if (level == 3) {
       _timerstore = 2;
       _timerSeconds = _timerstore;
     }
-    score = _level;
+    score = level;
     // Default to 'A' if symbol is null
     if (widget.chapter != null) {
       print(
@@ -204,7 +204,7 @@ class _LessonScreenState extends State<LessonScreen>
     // Use asset-based approach instead of file path
     try {
       _videoController = VideoPlayerController.asset(
-          "http://localhost:9000/videos/" + lesson + ".mp4");
+          "http://localhost:9000/videos/$lesson.mp4");
       // print("\033[46mThe lesson is " + lesson + ".\033[0m\n");
 
       // Add listener to update UI when video status changes
@@ -819,13 +819,13 @@ class _LessonScreenState extends State<LessonScreen>
                                         children: [
                                           Text(
                                             "Lesson ${widget.lesson[1] ?? '1'}",
-                                            style: TextStyle(
+                                            style: const TextStyle(
                                               fontSize: 18,
                                               fontWeight: FontWeight.normal,
                                             ),
                                           ),
-                                          SizedBox(height: 8),
-                                          Text(
+                                          const SizedBox(height: 8),
+                                          const Text(
                                             "Basic Hand Signs",
                                             style: TextStyle(
                                               fontSize: 22,

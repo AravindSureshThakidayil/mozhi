@@ -3,11 +3,13 @@ import './lesson_one.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:mozhi/components/sidebar.dart';
 import 'package:mozhi/components/topbar.dart';
+
 class ChapterScreen extends StatefulWidget {
   final String chapterNumber;
   final String? chapterTitle;
 
-  const ChapterScreen({super.key, required this.chapterNumber, this.chapterTitle});
+  const ChapterScreen(
+      {super.key, required this.chapterNumber, this.chapterTitle});
 
   @override
   State<ChapterScreen> createState() => _ChapterScreenState();
@@ -31,7 +33,8 @@ class _ChapterScreenState extends State<ChapterScreen> {
             title: "Lesson ${doc.id[0]}",
             subtitle: "${doc.id[0]}-Level ${doc.id[1]}",
             isUnlocked: true,
-            onTap: () => _navigateToLesson(lessonData['symbol'], doc.id,false)));
+            onTap: () =>
+                _navigateToLesson(lessonData['symbol'], doc.id, false)));
       }
       return lessonsData;
     } catch (e) {
@@ -40,7 +43,7 @@ class _ChapterScreenState extends State<ChapterScreen> {
     }
   }
 
-  void _navigateToLesson(String chapter,String lesson, bool isLocked) {
+  void _navigateToLesson(String chapter, String lesson, bool isLocked) {
     print("Navigating to lesson: $lesson of chapter: $chapter");
     if (isLocked) {
       // Show a dialog or snackbar indicating the chapter is locked
@@ -54,7 +57,7 @@ class _ChapterScreenState extends State<ChapterScreen> {
       return;
     }
 
-    Widget lessonScreen = LessonScreen(chapter: chapter,lesson: lesson);
+    Widget lessonScreen = LessonScreen(chapter: chapter, lesson: lesson);
 
     // You might want to pass the lessonNumber or other relevant data to the LessonScreen
     Navigator.of(context).push(
@@ -190,9 +193,9 @@ class _ChapterScreenState extends State<ChapterScreen> {
                                 ),
                               ),
                               const SizedBox(height: 3),
-                               Text(
+                              Text(
                                 "${widget.chapterTitle}",
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontSize: 20,
                                   fontWeight: FontWeight.normal,
                                   color: Colors.black,
@@ -205,7 +208,6 @@ class _ChapterScreenState extends State<ChapterScreen> {
                                 endIndent: 20,
                               ),
                               const SizedBox(height: 20),
-                              
                               const SizedBox(height: 10),
                               Expanded(
                                   child: Container(
@@ -295,11 +297,11 @@ class _ChapterScreenState extends State<ChapterScreen> {
           ),
           boxShadow: isUnlocked
               ? [
-                  BoxShadow(
+                  const BoxShadow(
                     color: Colors.grey,
                     spreadRadius: 1,
                     blurRadius: 3,
-                    offset: const Offset(0, 2),
+                    offset: Offset(0, 2),
                   ),
                 ]
               : null,

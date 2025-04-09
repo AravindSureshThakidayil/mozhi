@@ -15,7 +15,7 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  runApp(ProviderScope(child: const MyApp()));
+  runApp(const ProviderScope(child: MyApp()));
 }
 
 class MyApp extends StatelessWidget {
@@ -88,12 +88,12 @@ class _MyHomePageState extends State<MyHomePage> {
           in querySnapshot.docs) {
         chapterData = doc.data();
         print(doc.data());
-
+        var title = chapterData['title'];
         chapters.add(ChapterCard(
-          chapterNumber: count.toString(),
+          chapterNumber: (count + 1).toString(),
           title: chapterData['title'],
           description: chapterData['description'],
-          onTap: () => _navigateToChapter(doc.id, false,chapterData['title']),
+          onTap: () => _navigateToChapter(doc.id, false, title),
         ));
         count++;
       }
@@ -104,7 +104,7 @@ class _MyHomePageState extends State<MyHomePage> {
     return chapters;
   }
 
-  void _navigateToChapter(String chapterNumber, bool isLocked,String? title) {
+  void _navigateToChapter(String chapterNumber, bool isLocked, String? title) {
     if (isLocked) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -116,7 +116,10 @@ class _MyHomePageState extends State<MyHomePage> {
       return;
     }
 
-    Widget chapterScreen = ChapterScreen(chapterNumber: chapterNumber,chapterTitle: title,);
+    Widget chapterScreen = ChapterScreen(
+      chapterNumber: chapterNumber,
+      chapterTitle: title,
+    );
     Navigator.of(context).push(
       PageRouteBuilder(
         pageBuilder: (context, animation, secondaryAnimation) => chapterScreen,

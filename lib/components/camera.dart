@@ -64,8 +64,8 @@ class _CameraExampleHomeState extends State<CameraExampleHome>
 
   late final AnimationController _focusModeControlRowAnimationController;
 
-  double _minAvailableZoom = 1.0;
-  double _maxAvailableZoom = 1.0;
+  final double _minAvailableZoom = 1.0;
+  final double _maxAvailableZoom = 1.0;
   double _currentScale = 1.0;
   double _baseScale = 1.0;
 
@@ -253,12 +253,12 @@ class _CameraExampleHomeState extends State<CameraExampleHome>
         ]);
   }
 
-  int _start = 5;
+  final int _start = 5;
   int _current = 5;
 
   void startTimer() {
-    CountdownTimer countdownTimer = new CountdownTimer(
-        new Duration(seconds: _start), new Duration(seconds: 1));
+    CountdownTimer countdownTimer =
+        CountdownTimer(Duration(seconds: _start), const Duration(seconds: 1));
     var sub = countdownTimer.listen(null);
 
     sub.onData((duration) {

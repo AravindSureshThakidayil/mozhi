@@ -83,9 +83,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         final lessonsSnapshot = await lessonsRef.get();
 
         for (var lessonDoc in lessonsSnapshot.docs) {
-          final lessonId = 'chapters/${chapterNumber}/lessons/${lessonDoc.id}';
-          lessonIdToChapter[lessonId] =
-              'Chapter ${chapterNumber}: ${chapterName}';
+          final lessonId = 'chapters/$chapterNumber/lessons/${lessonDoc.id}';
+          lessonIdToChapter[lessonId] = 'Chapter $chapterNumber: $chapterName';
         }
       }
 
@@ -388,7 +387,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 const SizedBox(height: 10),
               ],
             );
-          }).toList(),
+          }),
       ],
     );
   }
@@ -522,7 +521,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _evaluationButton({context}) {
+  Widget _evaluationButton() {
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       child: GestureDetector(
